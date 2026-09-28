@@ -580,6 +580,40 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /me/preferences:
+    put:
+      operationId: setEmailPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailPreferences"
+      responses:
+        "204":
+          description: Saved
+        "401":
+          $ref: "#/components/responses/Error"
+  /notifications:
+    get:
+      operationId: listNotifications
+      responses:
+        "200":
+          description: The latest notifications of the active organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+        "401":
+          $ref: "#/components/responses/Error"
+  /notifications/read:
+    post:
+      operationId: readNotifications
+      responses:
+        "204":
+          description: Marked as read
+        "401":
+          $ref: "#/components/responses/Error"
   /me:
     get:
       operationId: getMe
@@ -1093,7 +1127,7 @@ components:
           format: uuid
     MeUser:
       type: object
-      required: [id, name, email]
+      required: [id, name, email, emailSuccess, emailFailure]
       properties:
         id:
           type: string
@@ -1102,6 +1136,49 @@ components:
           type: string
         email:
           type: string
+        emailSuccess:
+          type: boolean
+        emailFailure:
+          type: boolean
+    EmailPreferences:
+      type: object
+      required: [emailSuccess, emailFailure]
+      properties:
+        emailSuccess:
+          type: boolean
+        emailFailure:
+          type: boolean
+    Notification:
+      type: object
+      required: [id, kind, template, params, createdAt, unread]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [info, failure, success]
+        template:
+          type: string
+        params:
+          type: object
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        unread:
+          type: boolean
+    NotificationList:
+      type: object
+      required: [items, unread]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        unread:
+          type: integer
     MeOrganization:
       type: object
       required: [id, name, role]

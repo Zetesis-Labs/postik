@@ -47,3 +47,45 @@ test('S05.16 Un post en Error se ve en rojo con su motivo', async ({ browser, re
   await expect(page.getByText('Bad Request: chat not found')).toBeVisible();
   await context.close();
 });
+
+test('S05.23 La campana muestra lo nuevo y se pone a cero al abrirla', async ({ browser, request }) => {
+  const context = await browser.newContext({ locale: 'es-ES' });
+  const page = await context.newPage();
+  await signIn(page, 'Úrsula');
+  await connectTelegram(page, request, 'Grupo Campana');
+
+  await publishNow(page, 'Para la campana');
+  const card = page.getByTestId('calendar-post').filter({ hasText: 'Para la campana' });
+  await expect(card.getByTestId('preview-post')).toHaveCount(1, { timeout: 20_000 });
+
+  await page.reload();
+  await expect(page.getByTestId('notifications-unread')).toBeVisible();
+  await page.getByTestId('notifications-bell').click();
+  const item = page.getByTestId('notification').first();
+  await expect(item).toContainText('Tu post se ha publicado en Telegram');
+  await expect(item.getByRole('link')).toHaveAttribute('href', /^https:\/\/t\.me\//);
+  await expect(page.getByTestId('notifications-unread')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId('notifications-bell')).toBeVisible();
+  await expect(page.getByTestId('notifications-unread')).toHaveCount(0);
+  await context.close();
+});
+
+test('S05.24 Configuración guarda los interruptores de correo', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'es-ES' });
+  const page = await context.newPage();
+  await signIn(page, 'Valeria');
+
+  await page.getByRole('link', { name: 'Configuración' }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  const success = page.getByRole('switch', { name: 'Correos de éxito' });
+  const failure = page.getByRole('switch', { name: 'Correos de fallo' });
+  await expect(success).toHaveAttribute('aria-checked', 'true');
+  await success.click();
+  await expect(page.getByText('Configuración actualizada')).toBeVisible();
+
+  await page.reload();
+  await expect(success).toHaveAttribute('aria-checked', 'false');
+  await expect(failure).toHaveAttribute('aria-checked', 'true');
+  await context.close();
+});

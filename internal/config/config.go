@@ -18,7 +18,15 @@ type Config struct {
 	OIDC              *OIDC
 	RequireInvitation bool
 	Telegram          *Telegram
+	Email             *Email
 	StorageDir        string
+}
+
+// Email is Resend: without it postik sends no email.
+type Email struct {
+	APIKey string
+	From   string
+	APIURL string
 }
 
 type Telegram struct {
@@ -95,6 +103,16 @@ func Load(getenv func(string) string) (Config, error) {
 		cfg.Telegram = &Telegram{BotToken: token, APIURL: strings.TrimRight(value("POSTIK_TELEGRAM_API_URL"), "/")}
 		if cfg.Telegram.APIURL == "" {
 			cfg.Telegram.APIURL = "https://api.telegram.org"
+		}
+	}
+
+	if key := value("POSTIK_RESEND_API_KEY"); key != "" {
+		cfg.Email = &Email{APIKey: key, From: value("POSTIK_EMAIL_FROM"), APIURL: strings.TrimRight(value("POSTIK_RESEND_API_URL"), "/")}
+		if cfg.Email.From == "" {
+			problems = append(problems, errors.New("POSTIK_EMAIL_FROM is required when POSTIK_RESEND_API_KEY is set"))
+		}
+		if cfg.Email.APIURL == "" {
+			cfg.Email.APIURL = "https://api.resend.com"
 		}
 	}
 

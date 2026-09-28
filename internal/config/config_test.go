@@ -39,6 +39,22 @@ func TestLoadValidConfiguration(t *testing.T) {
 	if got := strings.Join(cfg.Superadmin.RecoveryCodes, "|"); got != "alfa-1234|beta-5678" {
 		t.Errorf("RecoveryCodes = %q", got)
 	}
+	if cfg.Email != nil {
+		t.Error("without a Resend key there is no email")
+	}
+}
+
+func TestResendDefaultsToItsPublicAPI(t *testing.T) {
+	env := validEnv()
+	env["POSTIK_RESEND_API_KEY"] = "re_123"
+	env["POSTIK_EMAIL_FROM"] = "postik <postik@mail.example>"
+	cfg, err := Load(envFrom(env))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Email == nil || cfg.Email.APIURL != "https://api.resend.com" || cfg.Email.From != "postik <postik@mail.example>" {
+		t.Fatalf("Email = %+v", cfg.Email)
+	}
 }
 
 // S01.3 Una configuración incompleta impide arrancar y nombra la variable.
@@ -75,6 +91,11 @@ func TestIncompleteConfigurationNamesTheVariable(t *testing.T) {
 				env["POSTIK_OIDC_CLIENT_ID"] = "postik"
 			},
 			variable: "POSTIK_OIDC_CLIENT_SECRET",
+		},
+		{
+			name:     "Resend without sender",
+			mutate:   func(env map[string]string) { env["POSTIK_RESEND_API_KEY"] = "re_123" },
+			variable: "POSTIK_EMAIL_FROM",
 		},
 		{
 			name:     "require invitation is not a boolean",

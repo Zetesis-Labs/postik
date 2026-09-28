@@ -80,6 +80,7 @@ export type CalendarPost = components['schemas']['CalendarPost'];
 export type PostDetail = components['schemas']['PostDetail'];
 export type Tag = components['schemas']['Tag'];
 export type InvalidPost = components['schemas']['InvalidPost'];
+export type Notification = components['schemas']['Notification'];
 
 export const tagsQuery = queryOptions({
   queryKey: ['tags'],

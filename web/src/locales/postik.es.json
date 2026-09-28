@@ -71,5 +71,16 @@
   "connect_post": "Vincular",
   "release_id_update_failed": "No se ha podido vincular la publicación",
   "release_error_invalid_url": "El enlace tiene que empezar por https://",
-  "release_error_release_not_missing": "Este post ya tiene enlace o no está publicado"
+  "release_error_release_not_missing": "Este post ya tiene enlace o no está publicado",
+  "email_notifications": "Notificaciones por correo",
+  "success_emails": "Correos de éxito",
+  "success_emails_description": "Recibe un correo cuando tus posts se publiquen",
+  "failure_emails": "Correos de fallo",
+  "failure_emails_description": "Recibe un correo cuando un post no se pueda publicar",
+  "notification_published": "Tu post se ha publicado en {{provider}}: {{url}}",
+  "notification_failed": "Error al publicar en {{provider}} en {{channel}}: {{reason}}",
+  "notification_comment_failed": "Error al publicar los comentarios en {{provider}} en {{channel}}: {{reason}}",
+  "notification_unconfirmed": "No se ha podido confirmar tu post en {{provider}}. Revisa {{channel}}",
+  "notification_channel_disabled": "No se ha podido publicar en {{channel}} porque está desactivado. Actívalo y vuelve a intentarlo",
+  "notification_channel_refresh": "No se ha podido publicar en {{channel}} porque hay que volver a conectarlo"
 }

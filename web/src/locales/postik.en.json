@@ -71,5 +71,16 @@
   "connect_post": "Connect Post",
   "release_id_update_failed": "Failed to connect post",
   "release_error_invalid_url": "The link must start with https://",
-  "release_error_release_not_missing": "This post already has a link or is not published"
+  "release_error_release_not_missing": "This post already has a link or is not published",
+  "email_notifications": "Email Notifications",
+  "success_emails": "Success Emails",
+  "success_emails_description": "Receive email notifications when posts are published successfully",
+  "failure_emails": "Failure Emails",
+  "failure_emails_description": "Receive email notifications when posts fail to publish",
+  "notification_published": "Your post has been published on {{provider}}: {{url}}",
+  "notification_failed": "Error posting on {{provider}} for {{channel}}: {{reason}}",
+  "notification_comment_failed": "Error posting comments on {{provider}} for {{channel}}: {{reason}}",
+  "notification_unconfirmed": "We couldn't confirm your post on {{provider}}. Please check {{channel}}",
+  "notification_channel_disabled": "We couldn't post to {{channel}} because it's disabled. Please enable it and try again",
+  "notification_channel_refresh": "We couldn't post to {{channel}} because you need to reconnect it"
 }
