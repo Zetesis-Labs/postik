@@ -1,0 +1,14 @@
+{
+  "admin_access": "Administrator access",
+  "admin_access_title": "Administrator access",
+  "label_username": "Username",
+  "label_code": "Code",
+  "code_placeholder": "TOTP or recovery code",
+  "enter": "Sign in",
+  "back_to_sign_in": "Back to sign in",
+  "invalid_credentials": "The details are not correct",
+  "superadmin_panel": "Superadmin panel",
+  "superadmin_panel_empty": "The superadmin panel is still empty.",
+  "logout": "Log out",
+  "something_went_wrong": "Something went wrong. Please try again."
+}

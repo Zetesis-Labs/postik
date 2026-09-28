@@ -1,0 +1,12 @@
+{
+  "name": "postik",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.go", "bradlc.vscode-tailwindcss", "ms-playwright.playwright"]
+    }
+  }
+}
