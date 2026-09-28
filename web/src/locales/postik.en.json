@@ -23,5 +23,13 @@
   "add_telegram": "Add Telegram",
   "telegram_connection_expired": "The code expired. Close the window and try again.",
   "channel_name": "Channel name",
-  "calendar_coming": "The calendar arrives in the next vertical."
+  "calendar_coming": "The calendar arrives in the next vertical.",
+  "search_media_by_name": "Search by file name",
+  "no_media_match_search": "No media matches your search",
+  "select_or_upload_pictures_max_1gb": "Select or upload pictures and videos (maximum 1 GB per upload).",
+  "upload_size_limit_exceeded": "Upload size limit exceeded. Maximum 1 GB per upload session.",
+  "unsupported_type": "This file type is not supported",
+  "too_large": "The file is too large",
+  "unreadable": "The file could not be read",
+  "uploading": "Uploading"
 }

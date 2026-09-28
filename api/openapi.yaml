@@ -225,6 +225,89 @@ paths:
           $ref: "#/components/responses/Error"
         "502":
           $ref: "#/components/responses/Error"
+  /media:
+    get:
+      operationId: listMedia
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of the library
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaPage"
+        "401":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: uploadMedia
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "413":
+          $ref: "#/components/responses/Error"
+        "415":
+          $ref: "#/components/responses/Error"
+  /media/{id}:
+    put:
+      operationId: updateMedia
+      parameters:
+        - $ref: "#/components/parameters/MediaID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteMedia
+      parameters:
+        - $ref: "#/components/parameters/MediaID"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
   /me:
     get:
       operationId: getMe
@@ -239,6 +322,13 @@ paths:
           $ref: "#/components/responses/Error"
 components:
   parameters:
+    MediaID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     ChannelID:
       name: id
       in: path
@@ -262,6 +352,60 @@ components:
           type: string
         message:
           type: string
+    Media:
+      type: object
+      required: [id, name, url, kind, mime, size, alt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+        kind:
+          type: string
+          enum: [image, video]
+        mime:
+          type: string
+        size:
+          type: integer
+          format: int64
+        alt:
+          type: string
+        thumbnailUrl:
+          type: string
+        thumbnailSeconds:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    MediaPage:
+      type: object
+      required: [items, page, pages, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        page:
+          type: integer
+        pages:
+          type: integer
+        total:
+          type: integer
+    MediaUpdate:
+      type: object
+      properties:
+        alt:
+          type: string
+        thumbnailMediaId:
+          type: string
+          format: uuid
+          nullable: true
+        thumbnailSeconds:
+          type: integer
+          nullable: true
     Provider:
       type: object
       required: [identifier, name]

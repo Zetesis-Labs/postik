@@ -62,3 +62,16 @@ export const customersQuery = queryOptions({
   queryKey: ['customers'],
   queryFn: () => required(api.GET('/customers'), 'GET /customers'),
 });
+
+export type Media = components['schemas']['Media'];
+export type MediaPage = components['schemas']['MediaPage'];
+
+export const mediaQuery = (page: number, search: string) =>
+  queryOptions({
+    queryKey: ['media', page, search],
+    queryFn: () =>
+      required(
+        api.GET('/media', { params: { query: { page, ...(search ? { search } : {}) } } }),
+        'GET /media'
+      ),
+  });

@@ -23,5 +23,13 @@
   "add_telegram": "Añadir Telegram",
   "telegram_connection_expired": "El código ha caducado. Cierra la ventana y vuelve a intentarlo.",
   "channel_name": "Nombre del canal",
-  "calendar_coming": "El calendario llega en el siguiente vertical."
+  "calendar_coming": "El calendario llega en el siguiente vertical.",
+  "search_media_by_name": "Buscar por nombre de archivo",
+  "no_media_match_search": "Ningún medio coincide con la búsqueda",
+  "select_or_upload_pictures_max_1gb": "Selecciona o sube imágenes y vídeos (máximo 1 GB por subida).",
+  "upload_size_limit_exceeded": "Has superado el límite de subida. Máximo 1 GB por tanda.",
+  "unsupported_type": "Ese tipo de archivo no está admitido",
+  "too_large": "El archivo es demasiado grande",
+  "unreadable": "No se ha podido leer el archivo",
+  "uploading": "Subiendo"
 }
