@@ -96,5 +96,6 @@
   "post_problem_too_many_media": "There are more media than the network accepts",
   "post_problem_comment_media": "Comments on this network do not take media",
   "notification_refresh_failed": "We couldn't renew your {{provider}} channel {{channel}}. Please reconnect it",
-  "notification_channel_expiring": "Your {{provider}} channel {{channel}} expires in {{days}} days. Reconnect it before so its posts don't fail"
+  "notification_channel_expiring": "Your {{provider}} channel {{channel}} expires in {{days}} days. Reconnect it before so its posts don't fail",
+  "try_again": "Try again"
 }

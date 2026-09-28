@@ -383,12 +383,18 @@ func EscapeURN(urn string) string {
 	return strings.NewReplacer(":", "%3A", "(", "%28", ")", "%29", ",", "%2C").Replace(urn)
 }
 
+// get reads target. Only the versioned API (/rest) takes the version
+// headers; the older /v2 endpoints get the token alone, as Postiz calls them.
 func (c *Client) get(ctx context.Context, accessToken, target string, result any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return err
 	}
-	c.authorize(req, accessToken)
+	if strings.HasPrefix(target, c.APIURL+"/rest/") {
+		c.authorize(req, accessToken)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+	}
 	_, err = c.do(c.HTTP, req, result)
 	return err
 }

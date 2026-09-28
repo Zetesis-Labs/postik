@@ -167,7 +167,11 @@ func (o *OAuth) callback(ctx context.Context, userID *uuid.UUID, provider string
 		o.Logger.ErrorContext(ctx, "take the authorization", "provider", provider, "error", err)
 		return uuid.Nil, false, oauth.ErrInvalidState
 	}
-	if auth == nil || auth.Provider != provider || userID == nil || auth.UserID != *userID {
+	if auth == nil {
+		return uuid.Nil, false, oauth.ErrInvalidState
+	}
+	if auth.Provider != provider || userID == nil || auth.UserID != *userID {
+		o.Logger.WarnContext(ctx, "an authorization came back to someone else", "provider", provider, "authorized_provider", auth.Provider, "authorized_user", auth.UserID, "user", userID)
 		return uuid.Nil, false, oauth.ErrInvalidState
 	}
 	if network.Denied(q) {
@@ -226,7 +230,8 @@ func (o *OAuth) connect(ctx context.Context, orgID uuid.UUID, provider string, n
 		return nil, err
 	}
 	now := o.Now()
-	if channel == nil {
+	isNew := channel == nil
+	if isNew {
 		channel = &postgres.Channel{
 			ID:             uuid.New(),
 			OrganizationID: orgID,
@@ -242,10 +247,25 @@ func (o *OAuth) connect(ctx context.Context, orgID uuid.UUID, provider string, n
 	channel.InBetweenSteps = account.Pending
 	channel.UpdatedAt = now
 	o.refreshPicture(ctx, network, channel, account.PictureURL)
+	// The tokens go first so that a channel never looks connected without
+	// them; a new channel has to exist before its tokens can.
+	if !isNew {
+		if err := o.Tokens.Save(ctx, channel.ID, account.Tokens); err != nil {
+			return nil, err
+		}
+		return channel, o.Channels.Save(ctx, channel)
+	}
 	if err := o.Channels.Save(ctx, channel); err != nil {
 		return nil, err
 	}
-	return channel, o.Tokens.Save(ctx, channel.ID, account.Tokens)
+	if err := o.Tokens.Save(ctx, channel.ID, account.Tokens); err != nil {
+		if removeErr := o.Channels.Delete(ctx, orgID, channel.ID); removeErr != nil {
+			o.Logger.ErrorContext(ctx, "remove a channel left without tokens", "channel", channel.ID, "error", removeErr)
+		}
+		o.removePicture(ctx, channel)
+		return nil, err
+	}
+	return channel, nil
 }
 
 // reconnect gives a channel new tokens when the authorized account is the
@@ -274,12 +294,12 @@ func (o *OAuth) reconnect(ctx context.Context, network Network, auth *postgres.O
 		channel.Username = account.Username
 		o.refreshPicture(ctx, network, channel, account.PictureURL)
 	}
-	channel.RefreshNeeded = false
-	channel.UpdatedAt = o.Now()
-	if err := o.Channels.Save(ctx, channel); err != nil {
+	if err := o.Tokens.Save(ctx, channel.ID, account.Tokens); err != nil {
 		return uuid.Nil, "", err
 	}
-	return channel.ID, "", o.Tokens.Save(ctx, channel.ID, account.Tokens)
+	channel.RefreshNeeded = false
+	channel.UpdatedAt = o.Now()
+	return channel.ID, "", o.Channels.Save(ctx, channel)
 }
 
 func (o *OAuth) pageChannel(ctx context.Context, orgID, channelID uuid.UUID) (*postgres.Channel, PageNetwork, tokens.Tokens, error) {

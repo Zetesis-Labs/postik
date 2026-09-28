@@ -198,11 +198,13 @@ func TestAnExpiredTokenIsRenewedAndThePostGoesOutOnce(t *testing.T) {
 	b := h.memberBrowser(ana)
 	profile := b.connectLinkedIn(anaLinkedIn)
 	page := b.connectPage(anaAdmin, zetesis)
+	other := b.connectLinkedIn(fakelinkedin.Member{Sub: "ana-otra", Name: "Ana, otra cuenta"})
 	at := tomorrowAt(h.clock.Now(), 10)
 	ids := []string{
 		h.scheduleValues(b.session(), "schedule", at, profile, []value{{Content: "<p>Caducado</p>"}}),
 		h.scheduleValues(b.session(), "schedule", at, page, []value{{Content: "<p>Revocado</p>"}}),
 	}
+	interrupted := h.scheduleValues(b.session(), "schedule", at, other, []value{{Content: "<p>Renovación fallida</p>"}})
 	h.clock.Set(at)
 	h.exec("UPDATE channel_credentials SET expires_at = ? WHERE channel_id = ?", at.Add(-time.Hour), profile)
 
@@ -216,8 +218,23 @@ func TestAnExpiredTokenIsRenewedAndThePostGoesOutOnce(t *testing.T) {
 	if n := h.linkedIn.Renewals(); n != 2 {
 		t.Fatalf("renewals = %d, want 2", n)
 	}
-	if n := len(h.linkedIn.Posts()); n != 2 {
-		t.Fatalf("LinkedIn has %d posts, want 2", n)
+
+	h.linkedIn.FailNext("/rest/posts", http.StatusUnauthorized, "Invalid access token")
+	h.linkedIn.FailNext("/oauth/v2/accessToken", http.StatusServiceUnavailable, "Service Unavailable")
+	if err := h.publishValue(interrupted, at, 0, 1); err == nil {
+		t.Fatal("a renewal that failed on the way should ask River to retry")
+	}
+	if s := h.postState(interrupted); s.Status != "scheduled" || len(h.deliveries(interrupted)) != 0 {
+		t.Fatalf("after the failed renewal: %+v, deliveries %+v", s, h.deliveries(interrupted))
+	}
+	if err := h.publishValue(interrupted, at, 0, 2); err != nil {
+		t.Fatalf("second attempt: %v", err)
+	}
+	if s := h.postState(interrupted); s.Status != "published" {
+		t.Fatalf("after the retry: %+v", s)
+	}
+	if n := len(h.linkedIn.Posts()); n != 3 {
+		t.Fatalf("LinkedIn has %d posts, want 3", n)
 	}
 	for i, id := range ids {
 		if s := h.postState(id); s.Status != "published" {
@@ -339,5 +356,33 @@ func TestTheServerRejectsWhatLinkedInDoesNotTake(t *testing.T) {
 	}
 	if n := h.count("posts"); n != 0 {
 		t.Fatalf("%d posts saved", n)
+	}
+}
+
+// S06.22 Si LinkedIn publica sin devolver el ID, el post queda Publicado sin enlace.
+func TestAPostWithoutIDStaysPublishedWithoutLink(t *testing.T) {
+	h := newHarness(t, withOIDC("Fake"), withLinkedIn())
+	b := h.memberBrowser(ana)
+	channel := b.connectLinkedIn(anaLinkedIn)
+	at := tomorrowAt(h.clock.Now(), 10)
+	id := h.scheduleValues(b.session(), "schedule", at, channel, []value{{Content: "<p>Principal</p>"}, {Content: "<p>Comentario</p>"}})
+	h.clock.Set(at)
+
+	h.linkedIn.OmitIDNext()
+	h.mustPublishValue(id, at, 0)
+	h.mustPublishValue(id, at, 1)
+
+	if s := h.postState(id); s.Status != "published" || s.ReleaseURL != "" {
+		t.Fatalf("post = %+v", s)
+	}
+	if n := len(h.linkedIn.Comments()); n != 0 {
+		t.Fatalf("%d comments sent", n)
+	}
+	d := h.deliveries(id)
+	if len(d) != 2 || d[0].State != "sent" || d[0].ExternalID != "" || d[1].State != "failed" || !strings.Contains(d[1].Error, "ID") {
+		t.Fatalf("deliveries = %+v", d)
+	}
+	if n := len(h.templates(b.session(), "comment_failed")); n != 1 {
+		t.Fatalf("%d comment_failed notifications, want 1", n)
 	}
 }
