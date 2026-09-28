@@ -14,6 +14,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/connect"
 	"github.com/zetesis-labs/postik/internal/httpapi"
+	"github.com/zetesis-labs/postik/internal/library"
 	"github.com/zetesis-labs/postik/internal/postgres"
 	"github.com/zetesis-labs/postik/internal/storage"
 	"github.com/zetesis-labs/postik/internal/telegram"
@@ -45,6 +46,7 @@ func New(d Deps) http.Handler {
 		Identity:   identityStore,
 		Channels:   channelStore,
 		Files:      files,
+		Media:      &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
 		Now:        d.Now,
 		Logger:     d.Logger,
 	}
@@ -104,7 +106,20 @@ func New(d Deps) http.Handler {
 		writeJSONError(w, http.StatusForbidden, "cross_origin", "Cross-origin request rejected")
 	}))
 
-	return crossOrigin.Handler(sessions.Middleware(mux))
+	return crossOrigin.Handler(sessions.Middleware(limitUploads(mux)))
+}
+
+// maxUploadBody bounds a whole upload request: the largest video plus room
+// for the multipart envelope.
+const maxUploadBody = 1<<30 + 1<<20
+
+func limitUploads(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/media" {
+			r.Body = http.MaxBytesReader(w, r.Body, maxUploadBody)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func readiness(db *bun.DB) http.HandlerFunc {

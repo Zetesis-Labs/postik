@@ -101,3 +101,23 @@ CREATE TABLE telegram_state (
   CONSTRAINT telegram_state_pkey PRIMARY KEY (id),
   CONSTRAINT telegram_state_single_row CHECK (id = 1)
 );
+
+CREATE TABLE media (
+  id uuid NOT NULL,
+  organization_id uuid NOT NULL,
+  name text NOT NULL,
+  path text NOT NULL,
+  kind text NOT NULL,
+  mime text NOT NULL,
+  size bigint NOT NULL,
+  alt text NOT NULL DEFAULT '',
+  thumbnail_path text NULL,
+  thumbnail_seconds integer NULL,
+  created_at timestamptz NOT NULL,
+  deleted_at timestamptz NULL,
+  CONSTRAINT media_pkey PRIMARY KEY (id),
+  CONSTRAINT media_kind_check CHECK (kind IN ('image', 'video')),
+  CONSTRAINT media_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+);
+
+CREATE INDEX media_organization_created_idx ON media (organization_id, created_at DESC);

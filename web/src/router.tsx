@@ -8,6 +8,7 @@ import { LoginPage } from '@/components/auth/login-page';
 import { SuperadminLoginPage } from '@/components/auth/superadmin-login';
 import { AdminPanel } from '@/components/admin/admin-panel';
 import { LaunchesPage } from '@/components/launches/launches-page';
+import { MediaPage } from '@/components/media/media-page';
 
 type RouterContext = { queryClient: QueryClient };
 
@@ -94,7 +95,21 @@ const launchesRoute = createRoute({
   component: LaunchesPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute, launchesRoute]);
+const requireMember = async ({ context }: { context: RouterContext }) => {
+  const me = await context.queryClient.ensureQueryData(meQuery);
+  if (me?.kind !== 'member') {
+    throw redirect({ to: homeFor(me?.kind) });
+  }
+};
+
+const mediaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/media',
+  beforeLoad: requireMember,
+  component: MediaPage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute, launchesRoute, mediaRoute]);
 
 export function buildRouter(queryClient: QueryClient) {
   return createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent' });

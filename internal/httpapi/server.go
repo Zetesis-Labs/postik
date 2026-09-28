@@ -13,6 +13,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/connect"
 	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/core/identity"
+	"github.com/zetesis-labs/postik/internal/library"
 	"github.com/zetesis-labs/postik/internal/postgres"
 	"github.com/zetesis-labs/postik/internal/storage"
 )
@@ -31,6 +32,7 @@ type Server struct {
 	Identity   IdentityReader
 	Channels   *postgres.Channels
 	Telegram   *connect.Telegram
+	Media      *library.Library
 	Files      storage.Files
 	Now        func() time.Time
 	Logger     *slog.Logger
