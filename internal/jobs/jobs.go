@@ -60,6 +60,7 @@ type Deps struct {
 	Telegram *telegram.Client
 	Files    storage.Files
 	Notifier Notifier
+	Digester Digester
 	Now      func() time.Time
 	Logger   *slog.Logger
 }
@@ -68,6 +69,7 @@ type Jobs struct {
 	client         *river.Client[*sql.Tx]
 	PublishValue   *PublishValueWorker
 	SweepScheduled *SweepWorker
+	SuccessDigest  *DigestWorker
 }
 
 func New(d Deps) (*Jobs, error) {
@@ -77,9 +79,11 @@ func New(d Deps) (*Jobs, error) {
 	j := &Jobs{}
 	j.PublishValue = &PublishValueWorker{deps: d, jobs: j}
 	j.SweepScheduled = &SweepWorker{deps: d, jobs: j}
+	j.SuccessDigest = &DigestWorker{deps: d}
 	workers := river.NewWorkers()
 	river.AddWorker(workers, j.PublishValue)
 	river.AddWorker(workers, j.SweepScheduled)
+	river.AddWorker(workers, j.SuccessDigest)
 
 	client, err := river.NewClient(riverdatabasesql.New(d.DB.DB), &river.Config{
 		Schema:               migrations.RiverSchema,
@@ -93,6 +97,9 @@ func New(d Deps) (*Jobs, error) {
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour), func() (river.JobArgs, *river.InsertOpts) {
 				return SweepScheduledArgs{}, nil
 			}, &river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour), func() (river.JobArgs, *river.InsertOpts) {
+				return SuccessDigestArgs{}, nil
+			}, nil),
 		},
 	})
 	if err != nil {

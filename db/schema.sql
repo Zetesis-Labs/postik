@@ -5,6 +5,9 @@ CREATE TABLE users (
   email text NOT NULL,
   name text NOT NULL,
   created_at timestamptz NOT NULL,
+  notifications_read_at timestamptz NULL,
+  email_success boolean NOT NULL DEFAULT true,
+  email_failure boolean NOT NULL DEFAULT true,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_issuer_subject_key UNIQUE (issuer, subject)
 );
@@ -192,3 +195,18 @@ CREATE TABLE post_deliveries (
   CONSTRAINT post_deliveries_state_check CHECK (state IN ('sending', 'sent', 'failed')),
   CONSTRAINT post_deliveries_post_fkey FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE
 );
+
+CREATE TABLE notifications (
+  id uuid NOT NULL,
+  organization_id uuid NOT NULL,
+  kind text NOT NULL,
+  template text NOT NULL,
+  params jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL,
+  digested_at timestamptz NULL,
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_kind_check CHECK (kind IN ('info', 'failure', 'success')),
+  CONSTRAINT notifications_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+);
+
+CREATE INDEX notifications_organization_created_at_idx ON notifications (organization_id, created_at);

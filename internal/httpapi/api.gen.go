@@ -121,6 +121,27 @@ func (e NewPostsType) Valid() bool {
 	}
 }
 
+// Defines values for NotificationKind.
+const (
+	Failure NotificationKind = "failure"
+	Info    NotificationKind = "info"
+	Success NotificationKind = "success"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case Failure:
+		return true
+	case Info:
+		return true
+	case Success:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PostDetailStatus.
 const (
 	PostDetailStatusDraft     PostDetailStatus = "draft"
@@ -289,6 +310,12 @@ type Customer struct {
 	Name string             `json:"name"`
 }
 
+// EmailPreferences defines model for EmailPreferences.
+type EmailPreferences struct {
+	EmailFailure bool `json:"emailFailure"`
+	EmailSuccess bool `json:"emailSuccess"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    string `json:"code"`
@@ -332,9 +359,11 @@ type MeOrganizationRole string
 
 // MeUser defines model for MeUser.
 type MeUser struct {
-	Email string             `json:"email"`
-	Id    openapi_types.UUID `json:"id"`
-	Name  string             `json:"name"`
+	Email        string             `json:"email"`
+	EmailFailure bool               `json:"emailFailure"`
+	EmailSuccess bool               `json:"emailSuccess"`
+	Id           openapi_types.UUID `json:"id"`
+	Name         string             `json:"name"`
 }
 
 // Media defines model for Media.
@@ -379,6 +408,25 @@ type NewPosts struct {
 
 // NewPostsType defines model for NewPosts.Type.
 type NewPostsType string
+
+// Notification defines model for Notification.
+type Notification struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+	Kind      NotificationKind   `json:"kind"`
+	Params    map[string]string  `json:"params"`
+	Template  string             `json:"template"`
+	Unread    bool               `json:"unread"`
+}
+
+// NotificationKind defines model for Notification.Kind.
+type NotificationKind string
+
+// NotificationList defines model for NotificationList.
+type NotificationList struct {
+	Items  []Notification `json:"items"`
+	Unread int            `json:"unread"`
+}
 
 // OidcProvider defines model for OidcProvider.
 type OidcProvider struct {
@@ -593,6 +641,9 @@ type SetChannelPostingTimesJSONRequestBody SetChannelPostingTimesJSONBody
 // SetActiveOrganizationJSONRequestBody defines body for SetActiveOrganization for application/json ContentType.
 type SetActiveOrganizationJSONRequestBody = ActiveOrganization
 
+// SetEmailPreferencesJSONRequestBody defines body for SetEmailPreferences for application/json ContentType.
+type SetEmailPreferencesJSONRequestBody = EmailPreferences
+
 // UploadMediaMultipartRequestBody defines body for UploadMedia for multipart/form-data ContentType.
 type UploadMediaMultipartRequestBody UploadMediaMultipartBody
 
@@ -662,6 +713,9 @@ type ServerInterface interface {
 	// (POST /me/active-organization)
 	SetActiveOrganization(w http.ResponseWriter, r *http.Request)
 
+	// (PUT /me/preferences)
+	SetEmailPreferences(w http.ResponseWriter, r *http.Request)
+
 	// (GET /media)
 	ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams)
 
@@ -673,6 +727,12 @@ type ServerInterface interface {
 
 	// (PUT /media/{id})
 	UpdateMedia(w http.ResponseWriter, r *http.Request, id MediaID)
+
+	// (GET /notifications)
+	ListNotifications(w http.ResponseWriter, r *http.Request)
+
+	// (POST /notifications/read)
+	ReadNotifications(w http.ResponseWriter, r *http.Request)
 
 	// (GET /posts)
 	ListCalendarPosts(w http.ResponseWriter, r *http.Request, params ListCalendarPostsParams)
@@ -979,6 +1039,20 @@ func (siw *ServerInterfaceWrapper) SetActiveOrganization(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// SetEmailPreferences operation middleware
+func (siw *ServerInterfaceWrapper) SetEmailPreferences(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetEmailPreferences(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMedia operation middleware
 func (siw *ServerInterfaceWrapper) ListMedia(w http.ResponseWriter, r *http.Request) {
 
@@ -1082,6 +1156,34 @@ func (siw *ServerInterfaceWrapper) UpdateMedia(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateMedia(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ListNotifications(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotifications(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ReadNotifications(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadNotifications(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1603,6 +1705,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}/date", wrapper.MovePost)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}/release", wrapper.LinkPostRelease)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/posts/{id}/group", wrapper.DeletePostGroup)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/me/preferences", wrapper.SetEmailPreferences)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/notifications", wrapper.ListNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/notifications/read", wrapper.ReadNotifications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
 	return m
@@ -2214,6 +2319,36 @@ func (response SetActiveOrganization404JSONResponse) VisitSetActiveOrganizationR
 	return err
 }
 
+type SetEmailPreferencesRequestObject struct {
+	Body *SetEmailPreferencesJSONRequestBody
+}
+
+type SetEmailPreferencesResponseObject interface {
+	VisitSetEmailPreferencesResponse(w http.ResponseWriter) error
+}
+
+type SetEmailPreferences204Response struct {
+}
+
+func (response SetEmailPreferences204Response) VisitSetEmailPreferencesResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetEmailPreferences401JSONResponse struct{ ErrorJSONResponse }
+
+func (response SetEmailPreferences401JSONResponse) VisitSetEmailPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMediaRequestObject struct {
 	Params ListMediaParams
 }
@@ -2419,6 +2554,70 @@ func (response UpdateMedia404JSONResponse) VisitUpdateMediaResponse(w http.Respo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsRequestObject struct {
+}
+
+type ListNotificationsResponseObject interface {
+	VisitListNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ListNotifications200JSONResponse NotificationList
+
+func (response ListNotifications200JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListNotifications401JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadNotificationsRequestObject struct {
+}
+
+type ReadNotificationsResponseObject interface {
+	VisitReadNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ReadNotifications204Response struct {
+}
+
+func (response ReadNotifications204Response) VisitReadNotificationsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ReadNotifications401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ReadNotifications401JSONResponse) VisitReadNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3183,6 +3382,9 @@ type StrictServerInterface interface {
 	// (POST /me/active-organization)
 	SetActiveOrganization(ctx context.Context, request SetActiveOrganizationRequestObject) (SetActiveOrganizationResponseObject, error)
 
+	// (PUT /me/preferences)
+	SetEmailPreferences(ctx context.Context, request SetEmailPreferencesRequestObject) (SetEmailPreferencesResponseObject, error)
+
 	// (GET /media)
 	ListMedia(ctx context.Context, request ListMediaRequestObject) (ListMediaResponseObject, error)
 
@@ -3194,6 +3396,12 @@ type StrictServerInterface interface {
 
 	// (PUT /media/{id})
 	UpdateMedia(ctx context.Context, request UpdateMediaRequestObject) (UpdateMediaResponseObject, error)
+
+	// (GET /notifications)
+	ListNotifications(ctx context.Context, request ListNotificationsRequestObject) (ListNotificationsResponseObject, error)
+
+	// (POST /notifications/read)
+	ReadNotifications(ctx context.Context, request ReadNotificationsRequestObject) (ReadNotificationsResponseObject, error)
 
 	// (GET /posts)
 	ListCalendarPosts(ctx context.Context, request ListCalendarPostsRequestObject) (ListCalendarPostsResponseObject, error)
@@ -3655,6 +3863,37 @@ func (sh *strictHandler) SetActiveOrganization(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// SetEmailPreferences operation middleware
+func (sh *strictHandler) SetEmailPreferences(w http.ResponseWriter, r *http.Request) {
+	var request SetEmailPreferencesRequestObject
+
+	var body SetEmailPreferencesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetEmailPreferences(ctx, request.(SetEmailPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetEmailPreferences")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetEmailPreferencesResponseObject); ok {
+		if err := validResponse.VisitSetEmailPreferencesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMedia operation middleware
 func (sh *strictHandler) ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams) {
 	var request ListMediaRequestObject
@@ -3764,6 +4003,54 @@ func (sh *strictHandler) UpdateMedia(w http.ResponseWriter, r *http.Request, id 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateMediaResponseObject); ok {
 		if err := validResponse.VisitUpdateMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListNotifications operation middleware
+func (sh *strictHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
+	var request ListNotificationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNotifications(ctx, request.(ListNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNotificationsResponseObject); ok {
+		if err := validResponse.VisitListNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadNotifications operation middleware
+func (sh *strictHandler) ReadNotifications(w http.ResponseWriter, r *http.Request) {
+	var request ReadNotificationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadNotifications(ctx, request.(ReadNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadNotificationsResponseObject); ok {
+		if err := validResponse.VisitReadNotificationsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

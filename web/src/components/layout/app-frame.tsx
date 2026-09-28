@@ -8,12 +8,14 @@ export function AppFrame({
   menu,
   bottomMenu,
   headerActions,
+  endActions,
   children,
 }: {
   title: ReactNode;
   menu?: ReactNode;
   bottomMenu?: ReactNode;
   headerActions?: ReactNode;
+  endActions?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -34,6 +36,7 @@ export function AppFrame({
             <div className="flex gap-[20px] items-center text-textItemBlur">
               {headerActions}
               <LanguageComponent />
+              {endActions}
             </div>
           </div>
           <div className="flex flex-1 gap-[1px]">{children}</div>

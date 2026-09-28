@@ -30,6 +30,9 @@ services:
       POSTIK_TELEGRAM_BOT_TOKEN: ${POSTIK_TELEGRAM_BOT_TOKEN:-fake-token}
       POSTIK_TELEGRAM_API_URL: ${POSTIK_TELEGRAM_API_URL:-http://localhost:5556/telegram}
       POSTIK_STORAGE_DIR: /workspace/.data/uploads
+      POSTIK_RESEND_API_KEY: ${POSTIK_RESEND_API_KEY:-re_fake}
+      POSTIK_RESEND_API_URL: ${POSTIK_RESEND_API_URL:-http://localhost:5556/resend}
+      POSTIK_EMAIL_FROM: ${POSTIK_EMAIL_FROM:-postik <postik@example.com>}
     ports:
       - "8484:8080"
       - "5184:5173"

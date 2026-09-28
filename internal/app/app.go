@@ -13,9 +13,11 @@ import (
 	"github.com/zetesis-labs/postik/internal/auth"
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/connect"
+	"github.com/zetesis-labs/postik/internal/email"
 	"github.com/zetesis-labs/postik/internal/httpapi"
 	"github.com/zetesis-labs/postik/internal/jobs"
 	"github.com/zetesis-labs/postik/internal/library"
+	"github.com/zetesis-labs/postik/internal/notify"
 	"github.com/zetesis-labs/postik/internal/postgres"
 	"github.com/zetesis-labs/postik/internal/storage"
 	"github.com/zetesis-labs/postik/internal/telegram"
@@ -50,11 +52,18 @@ func New(d Deps) (*App, error) {
 	if d.Config.Telegram != nil {
 		bot = telegram.New(d.Config.Telegram.APIURL, d.Config.Telegram.BotToken)
 	}
+	notificationStore := postgres.NewNotifications(d.DB)
+	notices := &notify.Service{Store: notificationStore, PublicURL: d.Config.PublicURL.String(), Now: d.Now, Logger: d.Logger}
+	if d.Config.Email != nil {
+		notices.Email = email.NewResend(d.Config.Email.APIURL, d.Config.Email.APIKey, d.Config.Email.From)
+	}
 	work, err := jobs.New(jobs.Deps{
 		DB:       d.DB,
 		Store:    postgres.NewPublications(d.DB),
 		Telegram: bot,
 		Files:    files,
+		Notifier: notices,
+		Digester: notices,
 		Now:      d.Now,
 		Logger:   d.Logger,
 	})
@@ -64,16 +73,17 @@ func New(d Deps) (*App, error) {
 	postStore := postgres.NewPosts(d.DB)
 	postStore.Scheduler = work
 	api := &httpapi.Server{
-		Superadmin: d.Config.Superadmin,
-		OIDC:       d.Config.OIDC,
-		Sessions:   sessions,
-		Identity:   identityStore,
-		Channels:   channelStore,
-		Files:      files,
-		Media:      &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
-		Posts:      postStore,
-		Now:        d.Now,
-		Logger:     d.Logger,
+		Superadmin:    d.Config.Superadmin,
+		OIDC:          d.Config.OIDC,
+		Sessions:      sessions,
+		Identity:      identityStore,
+		Channels:      channelStore,
+		Files:         files,
+		Media:         &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
+		Posts:         postStore,
+		Notifications: notificationStore,
+		Now:           d.Now,
+		Logger:        d.Logger,
 	}
 	if d.Config.Telegram != nil {
 		api.Telegram = &connect.Telegram{

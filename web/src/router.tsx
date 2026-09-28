@@ -9,6 +9,7 @@ import { SuperadminLoginPage } from '@/components/auth/superadmin-login';
 import { AdminPanel } from '@/components/admin/admin-panel';
 import { LaunchesPage } from '@/components/launches/launches-page';
 import { MediaPage } from '@/components/media/media-page';
+import { SettingsPage } from '@/components/settings/settings-page';
 
 type RouterContext = { queryClient: QueryClient };
 
@@ -109,7 +110,14 @@ const mediaRoute = createRoute({
   component: MediaPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute, launchesRoute, mediaRoute]);
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  beforeLoad: requireMember,
+  component: SettingsPage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute, launchesRoute, mediaRoute, settingsRoute]);
 
 export function buildRouter(queryClient: QueryClient) {
   return createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent' });

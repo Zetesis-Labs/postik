@@ -26,17 +26,18 @@ type IdentityReader interface {
 }
 
 type Server struct {
-	Superadmin access.Superadmin
-	OIDC       *config.OIDC
-	Sessions   *auth.Sessions
-	Identity   IdentityReader
-	Channels   *postgres.Channels
-	Telegram   *connect.Telegram
-	Media      *library.Library
-	Posts      *postgres.Posts
-	Files      storage.Files
-	Now        func() time.Time
-	Logger     *slog.Logger
+	Superadmin    access.Superadmin
+	OIDC          *config.OIDC
+	Sessions      *auth.Sessions
+	Identity      IdentityReader
+	Channels      *postgres.Channels
+	Telegram      *connect.Telegram
+	Media         *library.Library
+	Posts         *postgres.Posts
+	Notifications *postgres.Notifications
+	Files         storage.Files
+	Now           func() time.Time
+	Logger        *slog.Logger
 }
 
 var _ StrictServerInterface = (*Server)(nil)
@@ -140,9 +141,16 @@ func (s *Server) GetMe(ctx context.Context, _ GetMeRequestObject) (GetMeResponse
 	for i, v := range m.memberships {
 		organizations[i] = MeOrganization{Id: v.OrganizationID, Name: v.OrganizationName, Role: MeOrganizationRole(v.Role)}
 	}
+	preferences, err := s.Notifications.Preferences(ctx, m.user.ID)
+	if err != nil {
+		return nil, err
+	}
 	me := GetMe200JSONResponse{
-		Kind:          Member,
-		User:          &MeUser{Id: m.user.ID, Name: m.user.Name, Email: m.user.Email},
+		Kind: Member,
+		User: &MeUser{
+			Id: m.user.ID, Name: m.user.Name, Email: m.user.Email,
+			EmailSuccess: preferences.EmailSuccess, EmailFailure: preferences.EmailFailure,
+		},
 		Organizations: &organizations,
 	}
 	if m.active != uuid.Nil {
