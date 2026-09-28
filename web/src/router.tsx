@@ -5,6 +5,7 @@ import { ModalManager } from '@/components/ui/modals';
 import { LoginPage } from '@/components/auth/login-page';
 import { SuperadminLoginPage } from '@/components/auth/superadmin-login';
 import { AdminPanel } from '@/components/admin/admin-panel';
+import { LaunchesPage } from '@/components/launches/launches-page';
 
 type RouterContext = { queryClient: QueryClient };
 
@@ -19,7 +20,16 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   },
 });
 
-const homeFor = (kind: string | undefined) => (kind === 'superadmin' ? '/admin' : '/auth/login');
+const homeFor = (kind: string | undefined) => {
+  switch (kind) {
+    case 'superadmin':
+      return '/admin';
+    case 'member':
+      return '/launches';
+    default:
+      return '/auth/login';
+  }
+};
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -40,8 +50,13 @@ const redirectIfSignedIn = async ({ context }: { context: RouterContext }) => {
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/auth/login',
+  validateSearch: (search: Record<string, unknown>): { error?: string } =>
+    typeof search.error === 'string' ? { error: search.error } : {},
   beforeLoad: redirectIfSignedIn,
-  component: LoginPage,
+  component: function Login() {
+    const { error } = loginRoute.useSearch();
+    return <LoginPage error={error} />;
+  },
 });
 
 const superadminLoginRoute = createRoute({
@@ -63,7 +78,19 @@ const adminRoute = createRoute({
   component: AdminPanel,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute]);
+const launchesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/launches',
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQuery);
+    if (me?.kind !== 'member') {
+      throw redirect({ to: homeFor(me?.kind) });
+    }
+  },
+  component: LaunchesPage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, superadminLoginRoute, adminRoute, launchesRoute]);
 
 export function buildRouter(queryClient: QueryClient) {
   return createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent' });

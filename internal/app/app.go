@@ -32,9 +32,12 @@ func New(d Deps) http.Handler {
 		SecureCookies: d.Config.SecureCookies(),
 		Logger:        d.Logger,
 	}
+	identityStore := postgres.NewIdentity(d.DB)
 	api := &httpapi.Server{
 		Superadmin: d.Config.Superadmin,
+		OIDC:       d.Config.OIDC,
 		Sessions:   sessions,
+		Identity:   identityStore,
 		Now:        d.Now,
 	}
 
@@ -43,6 +46,21 @@ func New(d Deps) http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /readyz", readiness(d.DB))
+	if d.Config.OIDC != nil {
+		oidc := &auth.OIDC{
+			Provider:          *d.Config.OIDC,
+			RedirectURL:       d.Config.PublicURL.String() + auth.CallbackPath,
+			RequireInvitation: d.Config.RequireInvitation,
+			SecureCookies:     d.Config.SecureCookies(),
+			Now:               d.Now,
+			Logins:            postgres.NewOIDCLogins(d.DB),
+			Identity:          identityStore,
+			Sessions:          sessions,
+			Logger:            d.Logger,
+		}
+		mux.HandleFunc("GET /api/v1/auth/oidc/login", oidc.Login)
+		mux.HandleFunc("GET "+auth.CallbackPath, oidc.Callback)
+	}
 	httpapi.HandlerWithOptions(
 		httpapi.NewStrictHandlerWithOptions(api, nil, httpapi.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc:  jsonError(d.Logger, http.StatusBadRequest, "bad_request"),

@@ -1,4 +1,4 @@
-.PHONY: generate fmt fmt-check vet test web-install web-typecheck web-build e2e spec-check migration migration-validate build run check
+.PHONY: generate fmt fmt-check vet test web-install web-typecheck web-build e2e spec-check migration migration-validate build run dev check
 
 GO_DIRS := ./cmd ./internal ./tools
 
@@ -45,5 +45,8 @@ build: web-build
 
 run: build
 	./bin/postik migrate && ./bin/postik serve
+
+dev: build
+	./scripts/dev.sh
 
 check: generate fmt-check vet migration-validate test web-typecheck spec-check

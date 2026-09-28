@@ -47,6 +47,26 @@ paths:
             Set-Cookie:
               schema:
                 type: string
+  /me/active-organization:
+    post:
+      operationId: setActiveOrganization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActiveOrganization"
+      responses:
+        "204":
+          description: Active organization changed
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
   /me:
     get:
       operationId: getMe
@@ -86,6 +106,21 @@ components:
           type: array
           items:
             type: string
+        oidc:
+          $ref: "#/components/schemas/OidcProvider"
+    OidcProvider:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    ActiveOrganization:
+      type: object
+      required: [organizationId]
+      properties:
+        organizationId:
+          type: string
+          format: uuid
     SuperadminLogin:
       type: object
       required: [username, password]
@@ -103,3 +138,35 @@ components:
         kind:
           type: string
           enum: [superadmin, member]
+        user:
+          $ref: "#/components/schemas/MeUser"
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeOrganization"
+        activeOrganizationId:
+          type: string
+          format: uuid
+    MeUser:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+    MeOrganization:
+      type: object
+      required: [id, name, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN, OWNER]

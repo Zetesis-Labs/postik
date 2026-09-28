@@ -10,5 +10,10 @@
   "superadmin_panel": "Superadmin panel",
   "superadmin_panel_empty": "The superadmin panel is still empty.",
   "logout": "Log out",
-  "something_went_wrong": "Something went wrong. Please try again."
+  "something_went_wrong": "Something went wrong. Please try again.",
+  "oidc_denied": "The sign-in provider did not authorize access.",
+  "oidc_state": "The sign-in expired or is not valid. Please try again.",
+  "oidc_unavailable": "The sign-in provider could not be reached. Please try later.",
+  "email_required": "Your sign-in provider did not share an email, and one is needed to enter.",
+  "invitation_required": "This instance only admits invited people."
 }

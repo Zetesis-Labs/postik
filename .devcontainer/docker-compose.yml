@@ -23,9 +23,14 @@ services:
       POSTIK_LISTEN_ADDR: :8080
       POSTIK_SUPERADMIN_USERNAME: ${POSTIK_SUPERADMIN_USERNAME:-admin}
       POSTIK_SUPERADMIN_PASSWORD: ${POSTIK_SUPERADMIN_PASSWORD:-admin}
+      POSTIK_OIDC_ISSUER: ${POSTIK_OIDC_ISSUER:-http://localhost:5556}
+      POSTIK_OIDC_CLIENT_ID: ${POSTIK_OIDC_CLIENT_ID:-postik}
+      POSTIK_OIDC_CLIENT_SECRET: ${POSTIK_OIDC_CLIENT_SECRET:-postik-secret}
+      POSTIK_OIDC_DISPLAY_NAME: ${POSTIK_OIDC_DISPLAY_NAME:-Fake}
     ports:
       - "8484:8080"
       - "5184:5173"
+      - "5556:5556"
     depends_on:
       postgres:
         condition: service_healthy

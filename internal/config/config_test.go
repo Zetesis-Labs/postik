@@ -69,6 +69,19 @@ func TestIncompleteConfigurationNamesTheVariable(t *testing.T) {
 			variable: "DATABASE_URL",
 		},
 		{
+			name: "OIDC without client secret",
+			mutate: func(env map[string]string) {
+				env["POSTIK_OIDC_ISSUER"] = "https://auth.example/realms/zetesis"
+				env["POSTIK_OIDC_CLIENT_ID"] = "postik"
+			},
+			variable: "POSTIK_OIDC_CLIENT_SECRET",
+		},
+		{
+			name:     "require invitation is not a boolean",
+			mutate:   func(env map[string]string) { env["POSTIK_REQUIRE_INVITATION"] = "maybe" },
+			variable: "POSTIK_REQUIRE_INVITATION",
+		},
+		{
 			name:     "public URL without scheme",
 			mutate:   func(env map[string]string) { env["POSTIK_PUBLIC_URL"] = "postik.example" },
 			variable: "POSTIK_PUBLIC_URL",

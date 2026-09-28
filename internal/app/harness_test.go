@@ -20,16 +20,19 @@ import (
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/testsupport"
+	"github.com/zetesis-labs/postik/internal/testsupport/fakeoidc"
 )
 
 var testTOTPSecret = []byte("postik-test-totp-secret!")
 
 type harness struct {
-	t      *testing.T
-	server *httptest.Server
-	clock  *testsupport.Clock
-	db     *bun.DB
-	config config.Config
+	t       *testing.T
+	server  *httptest.Server
+	handler http.Handler
+	clock   *testsupport.Clock
+	db      *bun.DB
+	config  config.Config
+	oidc    *fakeoidc.Provider
 }
 
 type harnessOption func(*config.Config)
@@ -50,7 +53,16 @@ func testWebUI() fs.FS {
 
 func newHarness(t *testing.T, options ...harnessOption) *harness {
 	t.Helper()
-	publicURL, _ := url.Parse("http://postik.test")
+	h := &harness{
+		t:     t,
+		clock: testsupport.NewClock(time.Date(2026, 9, 28, 10, 0, 15, 0, time.UTC)),
+		db:    testsupport.NewMigratedDB(t),
+	}
+	h.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.handler.ServeHTTP(w, r)
+	}))
+	t.Cleanup(h.server.Close)
+	publicURL, _ := url.Parse(h.server.URL)
 	cfg := config.Config{
 		DatabaseURL: "unused",
 		PublicURL:   publicURL,
@@ -63,21 +75,17 @@ func newHarness(t *testing.T, options ...harnessOption) *harness {
 	for _, option := range options {
 		option(&cfg)
 	}
-	h := &harness{
-		t:      t,
-		clock:  testsupport.NewClock(time.Date(2026, 9, 28, 10, 0, 15, 0, time.UTC)),
-		db:     testsupport.NewMigratedDB(t),
-		config: cfg,
+	if cfg.OIDC != nil {
+		startOIDC(h, &cfg)
 	}
-	handler := app.New(app.Deps{
+	h.config = cfg
+	h.handler = app.New(app.Deps{
 		Config: cfg,
 		DB:     h.db,
 		Now:    h.clock.Now,
 		WebUI:  testWebUI(),
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	})
-	h.server = httptest.NewServer(handler)
-	t.Cleanup(h.server.Close)
 	return h
 }
 

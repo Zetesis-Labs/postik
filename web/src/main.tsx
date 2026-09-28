@@ -8,6 +8,7 @@ import '@fontsource/plus-jakarta-sans/700.css';
 import '@/styles/global.scss';
 import '@/styles/postik.css';
 import { initI18n } from '@/lib/i18n';
+import { applyMode, storedMode } from '@/components/layout/mode';
 import { buildRouter } from '@/router';
 
 const queryClient = new QueryClient({
@@ -16,6 +17,7 @@ const queryClient = new QueryClient({
   },
 });
 const router = buildRouter(queryClient);
+applyMode(storedMode());
 
 initI18n().then(() => {
   createRoot(document.getElementById('root')!).render(
