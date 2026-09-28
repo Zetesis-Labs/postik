@@ -1,4 +1,4 @@
-# postiz-go
+# postik
 
 Programador de publicaciones en redes sociales: un binario en Go con Postgres y un frontend en TanStack.
 

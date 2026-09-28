@@ -1,6 +1,6 @@
-# postiz-go — Especificación funcional: alcance reducido v1
+# postik — Especificación funcional: alcance reducido v1
 
-- **Referencia:** comportamiento de Postiz v2.24.0 (tag `v2.24.0` del fork de referencia [`Zetesis-Labs/postiz-app`](https://github.com/Zetesis-Labs/postiz-app)). postiz-go no comparte código ni historia con Postiz.
+- **Referencia:** comportamiento de Postiz v2.24.0 (tag `v2.24.0` del fork de referencia [`Zetesis-Labs/postiz-app`](https://github.com/Zetesis-Labs/postiz-app)). postik no comparte código ni historia con Postiz.
 - **Fecha:** 2026-09-27 (actualizada el 2026-09-28).
 - **Convenciones:**
   - Lo que no lleva etiqueta es comportamiento de Postiz v2.24.0 que se conserva tal cual.
@@ -9,7 +9,7 @@
 
 ## 1. Resumen
 
-postiz-go replica Postiz, el programador de publicaciones en redes sociales, en un alcance reducido. Un equipo organizado en organizaciones conecta sus canales (páginas y cuentas de redes sociales), escribe publicaciones para varios canales a la vez, las programa en un calendario y el sistema las publica a su hora: con hilos o comentarios encadenados, reintentos seguros y avisos cuando algo falla. Un agente externo puede hacer lo mismo a través de MCP.
+postik replica Postiz, el programador de publicaciones en redes sociales, en un alcance reducido. Un equipo organizado en organizaciones conecta sus canales (páginas y cuentas de redes sociales), escribe publicaciones para varios canales a la vez, las programa en un calendario y el sistema las publica a su hora: con hilos o comentarios encadenados, reintentos seguros y avisos cuando algo falla. Un agente externo puede hacer lo mismo a través de MCP.
 
 La v1 cubre:
 
@@ -341,7 +341,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
   | Sin credenciales | «No autorizado», con el enlace a los metadatos |
   | Token caducado, de otro emisor o dirigido a otro servicio | «Token inválido» |
   | Token sin el permiso necesario | «Permiso insuficiente», indicando cuál falta |
-  | La cuenta del proveedor aún no ha entrado nunca en la aplicación web | «Entra una vez en postiz-go y vuelve a intentarlo» |
+  | La cuenta del proveedor aún no ha entrado nunca en la aplicación web | «Entra una vez en postik y vuelve a intentarlo» |
   | La organización de la URL no existe o el miembro no pertenece a ella | «Acceso denegado» |
 
 ### F19. Impersonar (superadmin)
