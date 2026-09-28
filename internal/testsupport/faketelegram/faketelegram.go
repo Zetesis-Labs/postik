@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,6 +42,36 @@ type Bot struct {
 	nextID    int64
 	messageID int64
 	deleted   map[int64][]int64
+	sent      []Sent
+	failure   *failure
+}
+
+// Sent is a message the bot was asked to send.
+type Sent struct {
+	Method    string      `json:"method"`
+	ChatID    int64       `json:"chatId"`
+	Text      string      `json:"text"`
+	ParseMode string      `json:"parseMode"`
+	ReplyTo   int64       `json:"replyTo"`
+	Media     []SentMedia `json:"media"`
+	MessageID int64       `json:"messageId"`
+}
+
+// SentMedia is a file that came with a message. Caption is only set inside
+// media groups; in sendPhoto and sendVideo it is the message's Text.
+type SentMedia struct {
+	Type    string `json:"type"`
+	Caption string `json:"caption"`
+	Name    string `json:"name"`
+	Data    []byte `json:"-"`
+	Size    int    `json:"size"`
+}
+
+// failure is what the next send answers instead of sending.
+type failure struct {
+	code        int
+	description string
+	drop        bool
 }
 
 func New(username string) *Bot {
@@ -85,6 +116,29 @@ func (b *Bot) Deleted(chatID int64) []int64 {
 	return append([]int64(nil), b.deleted[chatID]...)
 }
 
+// Sent lists, in order, the messages the bot sent.
+func (b *Bot) Sent() []Sent {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return append([]Sent(nil), b.sent...)
+}
+
+// FailNext makes the next send answer with an error instead of sending. A 429
+// carries retry_after.
+func (b *Bot) FailNext(code int, description string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.failure = &failure{code: code, description: description}
+}
+
+// DropNext makes the next send read the request and close the connection
+// without answering, so the caller cannot know whether it went out.
+func (b *Bot) DropNext() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.failure = &failure{drop: true}
+}
+
 func chatJSON(c *Chat) map[string]any {
 	out := map[string]any{"id": c.ID, "type": c.Type}
 	if c.Title != "" {
@@ -109,11 +163,19 @@ func (b *Bot) Handler() http.Handler {
 	mux.HandleFunc("/bot"+Token+"/{method}", b.method)
 	mux.HandleFunc("GET /file/bot"+Token+"/photos/{chat}", b.file)
 	mux.HandleFunc("POST /_control/message", b.controlMessage)
+	mux.HandleFunc("POST /_control/fail", b.controlFail)
+	mux.HandleFunc("GET /_control/sent", b.controlSent)
 	mux.HandleFunc("GET /_control", b.controlForm)
 	return mux
 }
 
+var sendMethods = map[string]bool{"sendMessage": true, "sendPhoto": true, "sendVideo": true, "sendDocument": true, "sendMediaGroup": true}
+
 func (b *Bot) method(w http.ResponseWriter, r *http.Request) {
+	if sendMethods[r.PathValue("method")] {
+		b.send(w, r)
+		return
+	}
 	_ = r.ParseForm()
 	params := r.Form
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -171,6 +233,145 @@ func (b *Bot) method(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// send handles the send* methods, which come as JSON or, with files, as
+// multipart/form-data.
+func (b *Bot) send(w http.ResponseWriter, r *http.Request) {
+	method := r.PathValue("method")
+	params, files, err := readSend(r)
+	if err != nil {
+		fail(w, "Bad Request: "+err.Error())
+		return
+	}
+	b.mu.Lock()
+	failure := b.failure
+	b.failure = nil
+	b.mu.Unlock()
+	if failure != nil {
+		if failure.drop {
+			if hijacker, ok := w.(http.Hijacker); ok {
+				if conn, _, err := hijacker.Hijack(); err == nil {
+					_ = conn.Close()
+					return
+				}
+			}
+			panic(http.ErrAbortHandler)
+		}
+		failWith(w, failure.code, failure.description)
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	chat, found := b.chat(params["chat_id"])
+	if !found {
+		fail(w, "Bad Request: chat not found")
+		return
+	}
+	sent := Sent{Method: method, ChatID: chat.ID, ParseMode: params["parse_mode"]}
+	sent.ReplyTo, _ = strconv.ParseInt(params["reply_to_message_id"], 10, 64)
+	switch method {
+	case "sendMessage":
+		sent.Text = params["text"]
+	case "sendPhoto", "sendVideo", "sendDocument":
+		sent.Text = params["caption"]
+		field := map[string]string{"sendPhoto": "photo", "sendVideo": "video", "sendDocument": "document"}[method]
+		file, ok := files[field]
+		if !ok {
+			fail(w, "Bad Request: there is no "+field+" in the request")
+			return
+		}
+		sent.Media = []SentMedia{{Type: field, Name: file.Name, Data: file.Data, Size: len(file.Data)}}
+	case "sendMediaGroup":
+		var items []struct {
+			Type      string `json:"type"`
+			Media     string `json:"media"`
+			Caption   string `json:"caption"`
+			ParseMode string `json:"parse_mode"`
+		}
+		if err := json.Unmarshal([]byte(params["media"]), &items); err != nil {
+			fail(w, "Bad Request: can't parse media JSON object")
+			return
+		}
+		for _, item := range items {
+			file, ok := files[strings.TrimPrefix(item.Media, "attach://")]
+			if !ok {
+				fail(w, "Bad Request: wrong file identifier/HTTP URL specified")
+				return
+			}
+			sent.Media = append(sent.Media, SentMedia{Type: item.Type, Caption: item.Caption, Name: file.Name, Data: file.Data, Size: len(file.Data)})
+			if item.Caption != "" && sent.ParseMode == "" {
+				sent.ParseMode = item.ParseMode
+			}
+		}
+	}
+
+	count := max(len(sent.Media), 1)
+	if method != "sendMediaGroup" {
+		count = 1
+	}
+	var messages []map[string]any
+	for range count {
+		b.messageID++
+		messages = append(messages, map[string]any{"message_id": b.messageID, "chat": chatJSON(chat), "date": 0})
+	}
+	sent.MessageID = messages[0]["message_id"].(int64)
+	b.sent = append(b.sent, sent)
+	if method == "sendMediaGroup" {
+		ok(w, messages)
+		return
+	}
+	ok(w, messages[0])
+}
+
+type upload struct {
+	Name string
+	Data []byte
+}
+
+func readSend(r *http.Request) (map[string]string, map[string]upload, error) {
+	params := map[string]string{}
+	files := map[string]upload{}
+	switch {
+	case strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data"):
+		if err := r.ParseMultipartForm(64 << 20); err != nil {
+			return nil, nil, err
+		}
+		for k, v := range r.MultipartForm.Value {
+			params[k] = v[0]
+		}
+		for field, headers := range r.MultipartForm.File {
+			f, err := headers[0].Open()
+			if err != nil {
+				return nil, nil, err
+			}
+			data, err := io.ReadAll(f)
+			_ = f.Close()
+			if err != nil {
+				return nil, nil, err
+			}
+			files[field] = upload{Name: headers[0].Filename, Data: data}
+		}
+	case strings.HasPrefix(r.Header.Get("Content-Type"), "application/json"):
+		var body map[string]any
+		decoder := json.NewDecoder(r.Body)
+		decoder.UseNumber()
+		if err := decoder.Decode(&body); err != nil {
+			return nil, nil, err
+		}
+		for k, v := range body {
+			params[k] = fmt.Sprint(v)
+		}
+	default:
+		if err := r.ParseForm(); err != nil {
+			return nil, nil, err
+		}
+		for k, v := range r.Form {
+			params[k] = v[0]
+		}
+	}
+	return params, files, nil
+}
+
 func (b *Bot) chat(raw string) (*Chat, bool) {
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
@@ -224,6 +425,35 @@ func (b *Bot) controlMessage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// controlFail prepares the next send to fail: {"code": 400, "description": "Bad Request: chat not found"}
+// or {"drop": true}.
+func (b *Bot) controlFail(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Code        int    `json:"code"`
+		Description string `json:"description"`
+		Drop        bool   `json:"drop"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if body.Drop {
+		b.DropNext()
+	} else {
+		b.FailNext(body.Code, body.Description)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (b *Bot) controlSent(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	sent := b.Sent()
+	if sent == nil {
+		sent = []Sent{}
+	}
+	_ = json.NewEncoder(w).Encode(sent)
+}
+
 var controlPage = template.Must(template.New("control").Parse(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Fake Telegram</title>
 <style>body{font-family:sans-serif;background:#0e0e0e;color:#fff;display:flex;justify-content:center;padding-top:80px}
@@ -247,7 +477,15 @@ func ok(w http.ResponseWriter, result any) {
 }
 
 func fail(w http.ResponseWriter, description string) {
+	failWith(w, http.StatusBadRequest, description)
+}
+
+func failWith(w http.ResponseWriter, code int, description string) {
+	body := map[string]any{"ok": false, "error_code": code, "description": description}
+	if code == http.StatusTooManyRequests {
+		body["parameters"] = map[string]any{"retry_after": 1}
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	_ = json.NewEncoder(w).Encode(map[string]any{"ok": false, "error_code": 400, "description": description})
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(body)
 }

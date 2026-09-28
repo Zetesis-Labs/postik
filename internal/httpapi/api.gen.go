@@ -573,6 +573,11 @@ type NextSlotParams struct {
 	ChannelId *openapi_types.UUID `form:"channelId,omitempty" json:"channelId,omitempty"`
 }
 
+// LinkPostReleaseJSONBody defines parameters for LinkPostRelease.
+type LinkPostReleaseJSONBody struct {
+	Url string `json:"url"`
+}
+
 // LoginSuperadminJSONRequestBody defines body for LoginSuperadmin for application/json ContentType.
 type LoginSuperadminJSONRequestBody = SuperadminLogin
 
@@ -602,6 +607,9 @@ type UpdatePostJSONRequestBody = PostEdit
 
 // MovePostJSONRequestBody defines body for MovePost for application/json ContentType.
 type MovePostJSONRequestBody = PostMove
+
+// LinkPostReleaseJSONRequestBody defines body for LinkPostRelease for application/json ContentType.
+type LinkPostReleaseJSONRequestBody LinkPostReleaseJSONBody
 
 // CreateTagJSONRequestBody defines body for CreateTag for application/json ContentType.
 type CreateTagJSONRequestBody = TagInput
@@ -689,6 +697,9 @@ type ServerInterface interface {
 
 	// (DELETE /posts/{id}/group)
 	DeletePostGroup(w http.ResponseWriter, r *http.Request, id PostID)
+
+	// (PUT /posts/{id}/release)
+	LinkPostRelease(w http.ResponseWriter, r *http.Request, id PostID)
 
 	// (GET /tags)
 	ListTags(w http.ResponseWriter, r *http.Request)
@@ -1336,6 +1347,32 @@ func (siw *ServerInterfaceWrapper) DeletePostGroup(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// LinkPostRelease operation middleware
+func (siw *ServerInterfaceWrapper) LinkPostRelease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id PostID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LinkPostRelease(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListTags operation middleware
 func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Request) {
 
@@ -1564,6 +1601,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/posts/{id}", wrapper.GetPost)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}", wrapper.UpdatePost)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}/date", wrapper.MovePost)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}/release", wrapper.LinkPostRelease)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/posts/{id}/group", wrapper.DeletePostGroup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
@@ -2805,6 +2843,79 @@ func (response DeletePostGroup404JSONResponse) VisitDeletePostGroupResponse(w ht
 	return err
 }
 
+type LinkPostReleaseRequestObject struct {
+	Id   PostID `json:"id"`
+	Body *LinkPostReleaseJSONRequestBody
+}
+
+type LinkPostReleaseResponseObject interface {
+	VisitLinkPostReleaseResponse(w http.ResponseWriter) error
+}
+
+type LinkPostRelease204Response struct {
+}
+
+func (response LinkPostRelease204Response) VisitLinkPostReleaseResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type LinkPostRelease400JSONResponse struct{ ErrorJSONResponse }
+
+func (response LinkPostRelease400JSONResponse) VisitLinkPostReleaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LinkPostRelease401JSONResponse Error
+
+func (response LinkPostRelease401JSONResponse) VisitLinkPostReleaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LinkPostRelease404JSONResponse Error
+
+func (response LinkPostRelease404JSONResponse) VisitLinkPostReleaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LinkPostRelease409JSONResponse Error
+
+func (response LinkPostRelease409JSONResponse) VisitLinkPostReleaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListTagsRequestObject struct {
 }
 
@@ -3107,6 +3218,9 @@ type StrictServerInterface interface {
 
 	// (DELETE /posts/{id}/group)
 	DeletePostGroup(ctx context.Context, request DeletePostGroupRequestObject) (DeletePostGroupResponseObject, error)
+
+	// (PUT /posts/{id}/release)
+	LinkPostRelease(ctx context.Context, request LinkPostReleaseRequestObject) (LinkPostReleaseResponseObject, error)
 
 	// (GET /tags)
 	ListTags(ctx context.Context, request ListTagsRequestObject) (ListTagsResponseObject, error)
@@ -3877,6 +3991,39 @@ func (sh *strictHandler) DeletePostGroup(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DeletePostGroupResponseObject); ok {
 		if err := validResponse.VisitDeletePostGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// LinkPostRelease operation middleware
+func (sh *strictHandler) LinkPostRelease(w http.ResponseWriter, r *http.Request, id PostID) {
+	var request LinkPostReleaseRequestObject
+
+	request.Id = id
+
+	var body LinkPostReleaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.LinkPostRelease(ctx, request.(LinkPostReleaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LinkPostRelease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LinkPostReleaseResponseObject); ok {
+		if err := validResponse.VisitLinkPostReleaseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

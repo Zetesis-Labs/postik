@@ -14,6 +14,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/connect"
 	"github.com/zetesis-labs/postik/internal/httpapi"
+	"github.com/zetesis-labs/postik/internal/jobs"
 	"github.com/zetesis-labs/postik/internal/library"
 	"github.com/zetesis-labs/postik/internal/postgres"
 	"github.com/zetesis-labs/postik/internal/storage"
@@ -29,7 +30,13 @@ type Deps struct {
 	Logger *slog.Logger
 }
 
-func New(d Deps) http.Handler {
+// App is postik's HTTP handler and the jobs that run next to it.
+type App struct {
+	Handler http.Handler
+	Jobs    *jobs.Jobs
+}
+
+func New(d Deps) (*App, error) {
 	sessions := &auth.Sessions{
 		Store:         postgres.NewSessions(d.DB),
 		Now:           d.Now,
@@ -39,6 +46,23 @@ func New(d Deps) http.Handler {
 	identityStore := postgres.NewIdentity(d.DB)
 	channelStore := postgres.NewChannels(d.DB)
 	files := storage.Files{Dir: d.Config.StorageDir}
+	var bot *telegram.Client
+	if d.Config.Telegram != nil {
+		bot = telegram.New(d.Config.Telegram.APIURL, d.Config.Telegram.BotToken)
+	}
+	work, err := jobs.New(jobs.Deps{
+		DB:       d.DB,
+		Store:    postgres.NewPublications(d.DB),
+		Telegram: bot,
+		Files:    files,
+		Now:      d.Now,
+		Logger:   d.Logger,
+	})
+	if err != nil {
+		return nil, err
+	}
+	postStore := postgres.NewPosts(d.DB)
+	postStore.Scheduler = work
 	api := &httpapi.Server{
 		Superadmin: d.Config.Superadmin,
 		OIDC:       d.Config.OIDC,
@@ -47,13 +71,13 @@ func New(d Deps) http.Handler {
 		Channels:   channelStore,
 		Files:      files,
 		Media:      &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
-		Posts:      postgres.NewPosts(d.DB),
+		Posts:      postStore,
 		Now:        d.Now,
 		Logger:     d.Logger,
 	}
 	if d.Config.Telegram != nil {
 		api.Telegram = &connect.Telegram{
-			Client:   telegram.New(d.Config.Telegram.APIURL, d.Config.Telegram.BotToken),
+			Client:   bot,
 			Store:    postgres.NewTelegram(d.DB),
 			Channels: channelStore,
 			Files:    files,
@@ -107,7 +131,7 @@ func New(d Deps) http.Handler {
 		writeJSONError(w, http.StatusForbidden, "cross_origin", "Cross-origin request rejected")
 	}))
 
-	return crossOrigin.Handler(sessions.Middleware(limitUploads(mux)))
+	return &App{Handler: crossOrigin.Handler(sessions.Middleware(limitUploads(mux))), Jobs: work}, nil
 }
 
 // maxUploadBody bounds a whole upload request: the largest video plus room

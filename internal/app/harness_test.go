@@ -19,6 +19,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/app"
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/core/access"
+	"github.com/zetesis-labs/postik/internal/jobs"
 	"github.com/zetesis-labs/postik/internal/testsupport"
 	"github.com/zetesis-labs/postik/internal/testsupport/fakeoidc"
 	"github.com/zetesis-labs/postik/internal/testsupport/faketelegram"
@@ -35,6 +36,8 @@ type harness struct {
 	config  config.Config
 	oidc    *fakeoidc.Provider
 	bot     *faketelegram.Bot
+	botAPI  *httptest.Server
+	jobs    *jobs.Jobs
 }
 
 type harnessOption func(*config.Config)
@@ -85,13 +88,17 @@ func newHarness(t *testing.T, options ...harnessOption) *harness {
 		startTelegram(h, &cfg)
 	}
 	h.config = cfg
-	h.handler = app.New(app.Deps{
+	a, err := app.New(app.Deps{
 		Config: cfg,
 		DB:     h.db,
 		Now:    h.clock.Now,
 		WebUI:  testWebUI(),
 		Logger: slog.New(slog.NewTextHandler(testLog{t}, &slog.HandlerOptions{Level: slog.LevelWarn})),
 	})
+	if err != nil {
+		t.Fatalf("new app: %v", err)
+	}
+	h.handler, h.jobs = a.Handler, a.Jobs
 	return h
 }
 

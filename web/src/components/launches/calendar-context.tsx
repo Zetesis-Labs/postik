@@ -41,6 +41,13 @@ type Filters = { startDate: string; endDate: string; display: Display; customer:
 
 const displayKey = 'postik_calendar_display';
 
+// awaitingPublication tells whether a post is due and not yet settled, so the
+// calendar keeps asking until the publication job answers.
+function awaitingPublication(posts?: CalendarPost[]) {
+  const soon = dayjs().add(1, 'minute');
+  return (posts ?? []).some((p) => p.status === 'scheduled' && dayjs.utc(p.publishAt).isBefore(soon));
+}
+
 function readDisplay(): Display {
   try {
     const saved = window.localStorage.getItem(displayKey);
@@ -122,6 +129,7 @@ export const CalendarWeekProvider: FC<{ children: ReactNode; integrations: Integ
     queryKey: ['posts', 'range', from, to, filters.customer],
     enabled: filters.display !== 'list',
     placeholderData: keepPreviousData,
+    refetchInterval: (query) => (awaitingPublication(query.state.data) ? 3000 : false),
     queryFn: async () => {
       const { data } = await api.GET('/posts', {
         params: { query: { from, to, ...(filters.customer ? { customer: filters.customer } : {}) } },
@@ -132,6 +140,7 @@ export const CalendarWeekProvider: FC<{ children: ReactNode; integrations: Integ
   const list = useQuery({
     queryKey: ['posts', 'list', listPage, listState],
     enabled: filters.display === 'list',
+    refetchInterval: (query) => (awaitingPublication(query.state.data?.items) ? 3000 : false),
     queryFn: async () => {
       const { data } = await api.GET('/posts/list', { params: { query: { page: listPage + 1, status: listState } } });
       return data;

@@ -59,5 +59,17 @@
   "invalid_tag": "A tag needs a name and a color",
   "tag_taken": "A tag with that name already exists",
   "no_slot": "There is no free slot",
-  "not_found": "Not found"
+  "not_found": "Not found",
+  "post_error_channel_disabled": "It could not be published because the channel is disabled.",
+  "post_error_channel_refresh": "It could not be published because the channel has to be reconnected.",
+  "post_error_unconfirmed": "The publication could not be confirmed; check the channel.",
+  "post_error_unreachable": "The network could not be reached.",
+  "post_error_unknown": "An error occurred while publishing this post.",
+  "link_publication": "Link publication",
+  "paste_release_link": "Paste the link to the publication that matches this post:",
+  "publication_link": "Publication link",
+  "connect_post": "Connect Post",
+  "release_id_update_failed": "Failed to connect post",
+  "release_error_invalid_url": "The link must start with https://",
+  "release_error_release_not_missing": "This post already has a link or is not published"
 }

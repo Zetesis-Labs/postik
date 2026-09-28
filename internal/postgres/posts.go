@@ -74,12 +74,26 @@ type Post struct {
 	Channel *Channel `bun:"rel:belongs-to,join:channel_id=id"`
 }
 
+// Scheduler queues the publication of a scheduled post in the transaction
+// that saves it.
+type Scheduler interface {
+	SchedulePost(ctx context.Context, tx *sql.Tx, postID uuid.UUID, publishAt time.Time) error
+}
+
 type Posts struct {
-	db *bun.DB
+	db        *bun.DB
+	Scheduler Scheduler
 }
 
 func NewPosts(db *bun.DB) *Posts {
 	return &Posts{db: db}
+}
+
+func (s *Posts) schedule(ctx context.Context, tx bun.Tx, post *Post) error {
+	if s.Scheduler == nil || post.Status != "scheduled" {
+		return nil
+	}
+	return s.Scheduler.SchedulePost(ctx, tx.Tx, post.ID, post.PublishAt)
 }
 
 func isUniqueViolation(err error) bool {
@@ -147,8 +161,15 @@ func (s *Posts) CreateGroup(ctx context.Context, group PostGroup, tagIDs []uuid.
 		if err := setGroupTags(ctx, tx, group.ID, tagIDs); err != nil {
 			return err
 		}
-		_, err := tx.NewInsert().Model(&posts).Exec(ctx)
-		return err
+		if _, err := tx.NewInsert().Model(&posts).Exec(ctx); err != nil {
+			return err
+		}
+		for i := range posts {
+			if err := s.schedule(ctx, tx, &posts[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
@@ -234,13 +255,38 @@ func (s *Posts) Save(ctx context.Context, post *Post, tagIDs []uuid.UUID) error 
 		if _, err := tx.NewUpdate().Model(post).Column("status", "publish_at", "post_values", "settings", "updated_at").WherePK().Exec(ctx); err != nil {
 			return err
 		}
-		return setGroupTags(ctx, tx, post.GroupID, tagIDs)
+		if err := setGroupTags(ctx, tx, post.GroupID, tagIDs); err != nil {
+			return err
+		}
+		return s.schedule(ctx, tx, post)
 	})
 }
 
 func (s *Posts) Move(ctx context.Context, post *Post) error {
-	_, err := s.db.NewUpdate().Model(post).Column("status", "publish_at", "updated_at").WherePK().Exec(ctx)
-	return err
+	return s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.NewUpdate().Model(post).Column("status", "publish_at", "updated_at").WherePK().Exec(ctx); err != nil {
+			return err
+		}
+		return s.schedule(ctx, tx, post)
+	})
+}
+
+// SetReleaseURL links a published post that has no link. It reports
+// ErrConflict when the post is not published or already has one.
+func (s *Posts) SetReleaseURL(ctx context.Context, orgID, id uuid.UUID, url string, now time.Time) error {
+	res, err := s.db.NewUpdate().Model((*Post)(nil)).
+		Set("release_url = ?, updated_at = ?", url, now).
+		Where("organization_id = ? AND id = ? AND status = 'published' AND release_url IS NULL", orgID, id).Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		return nil
+	}
+	if _, err := s.Get(ctx, orgID, id); err != nil {
+		return err
+	}
+	return ErrConflict
 }
 
 func (s *Posts) DeleteGroup(ctx context.Context, orgID, groupID uuid.UUID) error {
