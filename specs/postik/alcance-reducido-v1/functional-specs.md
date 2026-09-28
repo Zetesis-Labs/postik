@@ -65,7 +65,7 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
 3. **Trabajar en equipo y con clientes.** Una agencia agrupa los canales por cliente, filtra el calendario por cliente e invita a su equipo con distintos permisos.
 4. **Mantener sanos los canales.** Ver qué canal hay que reconectar y hacerlo en un clic.
 5. **Delegar en un agente.** Desde un cliente MCP, listar canales, consultar las reglas de cada red, subir medios y programar posts.
-6. **Operar la instancia (superadmin).** Entrar aunque el proveedor OIDC esté caído, dar soporte actuando como un miembro y dar de alta equipos.
+6. **Operar la instancia (superadmin).** Entrar aunque el proveedor OIDC esté caído y dar de alta equipos.
 
 ## 4. Puntos de entrada
 
