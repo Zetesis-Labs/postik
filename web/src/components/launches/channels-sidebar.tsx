@@ -7,6 +7,7 @@ import { api, Channel, channelsQuery, customersQuery } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { AddProviderButton } from '@/components/launches/add-provider';
 import { Menu } from '@/components/launches/channel-menu';
+import { NewPost } from '@/components/launches/new-post';
 import { storedMode } from '@/components/layout/mode';
 
 export const SVGLine = () => (
@@ -201,6 +202,7 @@ export function ChannelsSidebar() {
   const refresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: channelsQuery.queryKey });
     void queryClient.invalidateQueries({ queryKey: customersQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ['posts'] });
   }, [queryClient]);
 
   const changeItemGroup = useCallback(
@@ -240,6 +242,7 @@ export function ChannelsSidebar() {
         </div>
         <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
           <AddProviderButton />
+          <div className="flex gap-[8px] group-[.sidebar]:flex-col">{channels.length > 0 && <NewPost />}</div>
         </div>
         <div className="gap-[32px] flex flex-col select-none flex-1">
           {!isLoading && channels.length === 0 && collapseMenu === '0' && (

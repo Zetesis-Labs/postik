@@ -1,5 +1,5 @@
 // Adaptado de Postiz v2.24.0: apps/frontend/src/components/launches/menu/menu.tsx (AGPL-3.0).
-// Acciones de la v1 para Telegram: copiar ID, mover a grupo, franjas, activar o desactivar y borrar.
+// Acciones de la v1 para Telegram: crear post, copiar ID, mover a grupo, franjas, activar o desactivar y borrar.
 import { FC, MouseEventHandler, ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, Channel } from '@/lib/api';
 import { useT } from '@/lib/i18n';
@@ -7,6 +7,7 @@ import { deleteDialog, useModals } from '@/components/ui/modals';
 import { useToaster } from '@/components/ui/toaster';
 import { CustomerModal } from '@/components/launches/customer-modal';
 import { TimeTable } from '@/components/launches/time-table';
+import { useCreatePost } from '@/components/launches/new-post';
 
 function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
   const ref = useRef<T>(null);
@@ -33,6 +34,7 @@ export const Menu: FC<{ integration: Channel; onChange: () => void }> = ({ integ
   const t = useT();
   const toast = useToaster();
   const modal = useModals();
+  const createPost = useCreatePost();
   const [show, setShow] = useState<false | { x: number; y: number }>(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const showRef = useRef<HTMLDivElement>(null);
@@ -158,6 +160,23 @@ export const Menu: FC<{ integration: Channel; onChange: () => void }> = ({ integ
           style={{ left: show.x, top: show.y }}
           className={`fixed p-[12px] bg-newBgColorInner shadow-menu flex flex-col gap-[16px] z-[100] rounded-[8px] border border-tableBorder text-nowrap`}
         >
+          {!integration.disabled && !integration.refreshNeeded && (
+            <MenuEntry
+              onClick={() => {
+                setShow(false);
+                void createPost(integration.id);
+              }}
+              label={t('create_new_post', 'Create a new post')}
+              icon={
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" fill="none">
+                  <path
+                    d="M21 4H11C9.14409 4.00199 7.36477 4.74012 6.05245 6.05245C4.74012 7.36477 4.00199 9.14409 4 11V21C4.00199 22.8559 4.74012 24.6352 6.05245 25.9476C7.36477 27.2599 9.14409 27.998 11 28H17C17.1075 27.9999 17.2142 27.9826 17.3162 27.9487C20.595 26.855 26.855 20.595 27.9487 17.3162C27.9826 17.2142 27.9999 17.1075 28 17V11C27.998 9.14409 27.2599 7.36477 25.9476 6.05245C24.6352 4.74012 22.8559 4.00199 21 4ZM17 25.9275V22C17 20.6739 17.5268 19.4021 18.4645 18.4645C19.4021 17.5268 20.6739 17 22 17H25.9275C24.77 19.6938 19.6938 24.77 17 25.9275Z"
+                    fill="green"
+                  />
+                </svg>
+              }
+            />
+          )}
           <MenuEntry
             onClick={copyChannelId}
             label={t('copy_id', 'Copy Channel ID')}
