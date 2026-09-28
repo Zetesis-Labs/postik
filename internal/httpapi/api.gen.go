@@ -19,6 +19,30 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for CalendarPostStatus.
+const (
+	CalendarPostStatusDraft     CalendarPostStatus = "draft"
+	CalendarPostStatusError     CalendarPostStatus = "error"
+	CalendarPostStatusPublished CalendarPostStatus = "published"
+	CalendarPostStatusScheduled CalendarPostStatus = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the CalendarPostStatus enum.
+func (e CalendarPostStatus) Valid() bool {
+	switch e {
+	case CalendarPostStatusDraft:
+		return true
+	case CalendarPostStatusError:
+		return true
+	case CalendarPostStatusPublished:
+		return true
+	case CalendarPostStatusScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MeKind.
 const (
 	Member     MeKind = "member"
@@ -76,6 +100,87 @@ func (e MediaKind) Valid() bool {
 	}
 }
 
+// Defines values for NewPostsType.
+const (
+	NewPostsTypeDraft    NewPostsType = "draft"
+	NewPostsTypeNow      NewPostsType = "now"
+	NewPostsTypeSchedule NewPostsType = "schedule"
+)
+
+// Valid indicates whether the value is a known member of the NewPostsType enum.
+func (e NewPostsType) Valid() bool {
+	switch e {
+	case NewPostsTypeDraft:
+		return true
+	case NewPostsTypeNow:
+		return true
+	case NewPostsTypeSchedule:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostDetailStatus.
+const (
+	PostDetailStatusDraft     PostDetailStatus = "draft"
+	PostDetailStatusError     PostDetailStatus = "error"
+	PostDetailStatusPublished PostDetailStatus = "published"
+	PostDetailStatusScheduled PostDetailStatus = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the PostDetailStatus enum.
+func (e PostDetailStatus) Valid() bool {
+	switch e {
+	case PostDetailStatusDraft:
+		return true
+	case PostDetailStatusError:
+		return true
+	case PostDetailStatusPublished:
+		return true
+	case PostDetailStatusScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostEditMode.
+const (
+	PostEditModeSchedule PostEditMode = "schedule"
+	PostEditModeUpdate   PostEditMode = "update"
+)
+
+// Valid indicates whether the value is a known member of the PostEditMode enum.
+func (e PostEditMode) Valid() bool {
+	switch e {
+	case PostEditModeSchedule:
+		return true
+	case PostEditModeUpdate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostMoveMode.
+const (
+	PostMoveModeSchedule PostMoveMode = "schedule"
+	PostMoveModeUpdate   PostMoveMode = "update"
+)
+
+// Valid indicates whether the value is a known member of the PostMoveMode enum.
+func (e PostMoveMode) Valid() bool {
+	switch e {
+	case PostMoveModeSchedule:
+		return true
+	case PostMoveModeUpdate:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TelegramConnectionStatusStatus.
 const (
 	Connected TelegramConnectionStatusStatus = "connected"
@@ -97,10 +202,50 @@ func (e TelegramConnectionStatusStatus) Valid() bool {
 	}
 }
 
+// Defines values for ListPostsParamsStatus.
+const (
+	ListPostsParamsStatusAll       ListPostsParamsStatus = "all"
+	ListPostsParamsStatusDraft     ListPostsParamsStatus = "draft"
+	ListPostsParamsStatusPublished ListPostsParamsStatus = "published"
+	ListPostsParamsStatusScheduled ListPostsParamsStatus = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the ListPostsParamsStatus enum.
+func (e ListPostsParamsStatus) Valid() bool {
+	switch e {
+	case ListPostsParamsStatusAll:
+		return true
+	case ListPostsParamsStatusDraft:
+		return true
+	case ListPostsParamsStatusPublished:
+		return true
+	case ListPostsParamsStatusScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // ActiveOrganization defines model for ActiveOrganization.
 type ActiveOrganization struct {
 	OrganizationId openapi_types.UUID `json:"organizationId"`
 }
+
+// CalendarPost defines model for CalendarPost.
+type CalendarPost struct {
+	Channel    PostChannel        `json:"channel"`
+	Error      *string            `json:"error,omitempty"`
+	Excerpt    string             `json:"excerpt"`
+	GroupId    openapi_types.UUID `json:"groupId"`
+	Id         openapi_types.UUID `json:"id"`
+	PublishAt  time.Time          `json:"publishAt"`
+	ReleaseUrl *string            `json:"releaseUrl,omitempty"`
+	Status     CalendarPostStatus `json:"status"`
+	Tags       []Tag              `json:"tags"`
+}
+
+// CalendarPostStatus defines model for CalendarPost.Status.
+type CalendarPostStatus string
 
 // Channel defines model for Channel.
 type Channel struct {
@@ -122,6 +267,22 @@ type ChannelCustomer struct {
 	Name       *string             `json:"name,omitempty"`
 }
 
+// ChannelPostInput defines model for ChannelPostInput.
+type ChannelPostInput struct {
+	ChannelId openapi_types.UUID     `json:"channelId"`
+	Settings  map[string]interface{} `json:"settings"`
+	Values    []PostValueInput       `json:"values"`
+}
+
+// CreatedGroup defines model for CreatedGroup.
+type CreatedGroup struct {
+	GroupId openapi_types.UUID `json:"groupId"`
+	Posts   []struct {
+		ChannelId openapi_types.UUID `json:"channelId"`
+		Id        openapi_types.UUID `json:"id"`
+	} `json:"posts"`
+}
+
 // Customer defines model for Customer.
 type Customer struct {
 	Id   openapi_types.UUID `json:"id"`
@@ -139,6 +300,13 @@ type Instance struct {
 	Languages      []string      `json:"languages"`
 	Oidc           *OidcProvider `json:"oidc,omitempty"`
 	SuperadminTotp bool          `json:"superadminTotp"`
+}
+
+// InvalidPost defines model for InvalidPost.
+type InvalidPost struct {
+	Code     string    `json:"code"`
+	Message  string    `json:"message"`
+	Problems []Problem `json:"problems"`
 }
 
 // Me defines model for Me.
@@ -201,9 +369,113 @@ type MediaUpdate struct {
 	ThumbnailSeconds *int                `json:"thumbnailSeconds,omitempty"`
 }
 
+// NewPosts defines model for NewPosts.
+type NewPosts struct {
+	Posts     []ChannelPostInput   `json:"posts"`
+	PublishAt time.Time            `json:"publishAt"`
+	Tags      []openapi_types.UUID `json:"tags"`
+	Type      NewPostsType         `json:"type"`
+}
+
+// NewPostsType defines model for NewPosts.Type.
+type NewPostsType string
+
 // OidcProvider defines model for OidcProvider.
 type OidcProvider struct {
 	Name string `json:"name"`
+}
+
+// PostChannel defines model for PostChannel.
+type PostChannel struct {
+	CustomerId *openapi_types.UUID `json:"customerId,omitempty"`
+	Id         openapi_types.UUID  `json:"id"`
+	Name       string              `json:"name"`
+	Picture    *string             `json:"picture,omitempty"`
+	Provider   string              `json:"provider"`
+}
+
+// PostDetail defines model for PostDetail.
+type PostDetail struct {
+	Channel    PostChannel            `json:"channel"`
+	Error      *string                `json:"error,omitempty"`
+	GroupId    openapi_types.UUID     `json:"groupId"`
+	Id         openapi_types.UUID     `json:"id"`
+	PublishAt  time.Time              `json:"publishAt"`
+	ReleaseUrl *string                `json:"releaseUrl,omitempty"`
+	Settings   map[string]interface{} `json:"settings"`
+	Status     PostDetailStatus       `json:"status"`
+	Tags       []Tag                  `json:"tags"`
+	Values     []PostValue            `json:"values"`
+}
+
+// PostDetailStatus defines model for PostDetail.Status.
+type PostDetailStatus string
+
+// PostEdit defines model for PostEdit.
+type PostEdit struct {
+	Mode      PostEditMode           `json:"mode"`
+	PublishAt time.Time              `json:"publishAt"`
+	Republish *bool                  `json:"republish,omitempty"`
+	Settings  map[string]interface{} `json:"settings"`
+	Tags      []openapi_types.UUID   `json:"tags"`
+	Values    []PostValueInput       `json:"values"`
+}
+
+// PostEditMode defines model for PostEdit.Mode.
+type PostEditMode string
+
+// PostMedia defines model for PostMedia.
+type PostMedia struct {
+	Alt              *string            `json:"alt,omitempty"`
+	Id               openapi_types.UUID `json:"id"`
+	Kind             string             `json:"kind"`
+	ThumbnailSeconds *int               `json:"thumbnailSeconds,omitempty"`
+	ThumbnailUrl     *string            `json:"thumbnailUrl,omitempty"`
+	Url              string             `json:"url"`
+}
+
+// PostMediaRef defines model for PostMediaRef.
+type PostMediaRef struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+// PostMove defines model for PostMove.
+type PostMove struct {
+	Mode      PostMoveMode `json:"mode"`
+	PublishAt time.Time    `json:"publishAt"`
+	Republish *bool        `json:"republish,omitempty"`
+}
+
+// PostMoveMode defines model for PostMove.Mode.
+type PostMoveMode string
+
+// PostPage defines model for PostPage.
+type PostPage struct {
+	Items []CalendarPost `json:"items"`
+	Page  int            `json:"page"`
+	Pages int            `json:"pages"`
+	Total int            `json:"total"`
+}
+
+// PostValue defines model for PostValue.
+type PostValue struct {
+	Content      string      `json:"content"`
+	DelayMinutes int         `json:"delayMinutes"`
+	Media        []PostMedia `json:"media"`
+}
+
+// PostValueInput defines model for PostValueInput.
+type PostValueInput struct {
+	Content      string         `json:"content"`
+	DelayMinutes int            `json:"delayMinutes"`
+	Media        []PostMediaRef `json:"media"`
+}
+
+// Problem defines model for Problem.
+type Problem struct {
+	ChannelId  *openapi_types.UUID `json:"channelId,omitempty"`
+	Code       string              `json:"code"`
+	ValueIndex *int                `json:"valueIndex,omitempty"`
 }
 
 // Provider defines model for Provider.
@@ -217,6 +489,19 @@ type SuperadminLogin struct {
 	Code     *string `json:"code,omitempty"`
 	Password string  `json:"password"`
 	Username string  `json:"username"`
+}
+
+// Tag defines model for Tag.
+type Tag struct {
+	Color string             `json:"color"`
+	Id    openapi_types.UUID `json:"id"`
+	Name  string             `json:"name"`
+}
+
+// TagInput defines model for TagInput.
+type TagInput struct {
+	Color string `json:"color"`
+	Name  string `json:"name"`
 }
 
 // TelegramConnection defines model for TelegramConnection.
@@ -240,6 +525,12 @@ type ChannelID = openapi_types.UUID
 // MediaID defines model for MediaID.
 type MediaID = openapi_types.UUID
 
+// PostID defines model for PostID.
+type PostID = openapi_types.UUID
+
+// TagID defines model for TagID.
+type TagID = openapi_types.UUID
+
 // SetChannelDisabledJSONBody defines parameters for SetChannelDisabled.
 type SetChannelDisabledJSONBody struct {
 	Disabled bool `json:"disabled"`
@@ -259,6 +550,27 @@ type ListMediaParams struct {
 // UploadMediaMultipartBody defines parameters for UploadMedia.
 type UploadMediaMultipartBody struct {
 	File openapi_types.File `json:"file"`
+}
+
+// ListCalendarPostsParams defines parameters for ListCalendarPosts.
+type ListCalendarPostsParams struct {
+	From     time.Time           `form:"from" json:"from"`
+	To       time.Time           `form:"to" json:"to"`
+	Customer *openapi_types.UUID `form:"customer,omitempty" json:"customer,omitempty"`
+}
+
+// ListPostsParams defines parameters for ListPosts.
+type ListPostsParams struct {
+	Page   *int                   `form:"page,omitempty" json:"page,omitempty"`
+	Status *ListPostsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListPostsParamsStatus defines parameters for ListPosts.
+type ListPostsParamsStatus string
+
+// NextSlotParams defines parameters for NextSlot.
+type NextSlotParams struct {
+	ChannelId *openapi_types.UUID `form:"channelId,omitempty" json:"channelId,omitempty"`
 }
 
 // LoginSuperadminJSONRequestBody defines body for LoginSuperadmin for application/json ContentType.
@@ -281,6 +593,21 @@ type UploadMediaMultipartRequestBody UploadMediaMultipartBody
 
 // UpdateMediaJSONRequestBody defines body for UpdateMedia for application/json ContentType.
 type UpdateMediaJSONRequestBody = MediaUpdate
+
+// CreatePostsJSONRequestBody defines body for CreatePosts for application/json ContentType.
+type CreatePostsJSONRequestBody = NewPosts
+
+// UpdatePostJSONRequestBody defines body for UpdatePost for application/json ContentType.
+type UpdatePostJSONRequestBody = PostEdit
+
+// MovePostJSONRequestBody defines body for MovePost for application/json ContentType.
+type MovePostJSONRequestBody = PostMove
+
+// CreateTagJSONRequestBody defines body for CreateTag for application/json ContentType.
+type CreateTagJSONRequestBody = TagInput
+
+// UpdateTagJSONRequestBody defines body for UpdateTag for application/json ContentType.
+type UpdateTagJSONRequestBody = TagInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -338,6 +665,42 @@ type ServerInterface interface {
 
 	// (PUT /media/{id})
 	UpdateMedia(w http.ResponseWriter, r *http.Request, id MediaID)
+
+	// (GET /posts)
+	ListCalendarPosts(w http.ResponseWriter, r *http.Request, params ListCalendarPostsParams)
+
+	// (POST /posts)
+	CreatePosts(w http.ResponseWriter, r *http.Request)
+
+	// (GET /posts/list)
+	ListPosts(w http.ResponseWriter, r *http.Request, params ListPostsParams)
+
+	// (GET /posts/next-slot)
+	NextSlot(w http.ResponseWriter, r *http.Request, params NextSlotParams)
+
+	// (GET /posts/{id})
+	GetPost(w http.ResponseWriter, r *http.Request, id PostID)
+
+	// (PUT /posts/{id})
+	UpdatePost(w http.ResponseWriter, r *http.Request, id PostID)
+
+	// (PUT /posts/{id}/date)
+	MovePost(w http.ResponseWriter, r *http.Request, id PostID)
+
+	// (DELETE /posts/{id}/group)
+	DeletePostGroup(w http.ResponseWriter, r *http.Request, id PostID)
+
+	// (GET /tags)
+	ListTags(w http.ResponseWriter, r *http.Request)
+
+	// (POST /tags)
+	CreateTag(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /tags/{id})
+	DeleteTag(w http.ResponseWriter, r *http.Request, id TagID)
+
+	// (PUT /tags/{id})
+	UpdateTag(w http.ResponseWriter, r *http.Request, id TagID)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -717,6 +1080,342 @@ func (siw *ServerInterfaceWrapper) UpdateMedia(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListCalendarPosts operation middleware
+func (siw *ServerInterfaceWrapper) ListCalendarPosts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCalendarPostsParams
+
+	// ------------- Required query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer", r.URL.Query(), &params.Customer, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCalendarPosts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePosts operation middleware
+func (siw *ServerInterfaceWrapper) CreatePosts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePosts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPosts operation middleware
+func (siw *ServerInterfaceWrapper) ListPosts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPostsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPosts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// NextSlot operation middleware
+func (siw *ServerInterfaceWrapper) NextSlot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params NextSlotParams
+
+	// ------------- Optional query parameter "channelId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "channelId", r.URL.Query(), &params.ChannelId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "channelId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.NextSlot(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPost operation middleware
+func (siw *ServerInterfaceWrapper) GetPost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id PostID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePost operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id PostID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MovePost operation middleware
+func (siw *ServerInterfaceWrapper) MovePost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id PostID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MovePost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePostGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeletePostGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id PostID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePostGroup(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTags operation middleware
+func (siw *ServerInterfaceWrapper) ListTags(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTags(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTag operation middleware
+func (siw *ServerInterfaceWrapper) CreateTag(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTag(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTag operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id TagID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTag(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTag operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id TagID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTag(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -854,12 +1553,26 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/media", wrapper.UploadMedia)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/media/{id}", wrapper.DeleteMedia)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/media/{id}", wrapper.UpdateMedia)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/tags", wrapper.ListTags)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/tags", wrapper.CreateTag)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/tags/{id}", wrapper.DeleteTag)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/tags/{id}", wrapper.UpdateTag)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/posts", wrapper.ListCalendarPosts)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/posts", wrapper.CreatePosts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/posts/list", wrapper.ListPosts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/posts/next-slot", wrapper.NextSlot)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/posts/{id}", wrapper.GetPost)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}", wrapper.UpdatePost)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/posts/{id}/date", wrapper.MovePost)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/posts/{id}/group", wrapper.DeletePostGroup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
 	return m
 }
 
 type ErrorJSONResponse Error
+
+type InvalidPostJSONResponse InvalidPost
 
 type LogoutRequestObject struct {
 }
@@ -1672,6 +2385,648 @@ func (response UpdateMedia404JSONResponse) VisitUpdateMediaResponse(w http.Respo
 	return err
 }
 
+type ListCalendarPostsRequestObject struct {
+	Params ListCalendarPostsParams
+}
+
+type ListCalendarPostsResponseObject interface {
+	VisitListCalendarPostsResponse(w http.ResponseWriter) error
+}
+
+type ListCalendarPosts200JSONResponse []CalendarPost
+
+func (response ListCalendarPosts200JSONResponse) VisitListCalendarPostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCalendarPosts401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListCalendarPosts401JSONResponse) VisitListCalendarPostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePostsRequestObject struct {
+	Body *CreatePostsJSONRequestBody
+}
+
+type CreatePostsResponseObject interface {
+	VisitCreatePostsResponse(w http.ResponseWriter) error
+}
+
+type CreatePosts201JSONResponse CreatedGroup
+
+func (response CreatePosts201JSONResponse) VisitCreatePostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePosts400JSONResponse struct{ InvalidPostJSONResponse }
+
+func (response CreatePosts400JSONResponse) VisitCreatePostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePosts401JSONResponse struct{ ErrorJSONResponse }
+
+func (response CreatePosts401JSONResponse) VisitCreatePostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPostsRequestObject struct {
+	Params ListPostsParams
+}
+
+type ListPostsResponseObject interface {
+	VisitListPostsResponse(w http.ResponseWriter) error
+}
+
+type ListPosts200JSONResponse PostPage
+
+func (response ListPosts200JSONResponse) VisitListPostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPosts401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListPosts401JSONResponse) VisitListPostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NextSlotRequestObject struct {
+	Params NextSlotParams
+}
+
+type NextSlotResponseObject interface {
+	VisitNextSlotResponse(w http.ResponseWriter) error
+}
+
+type NextSlot200JSONResponse struct {
+	Date time.Time `json:"date"`
+}
+
+func (response NextSlot200JSONResponse) VisitNextSlotResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NextSlot401JSONResponse struct{ ErrorJSONResponse }
+
+func (response NextSlot401JSONResponse) VisitNextSlotResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NextSlot404JSONResponse Error
+
+func (response NextSlot404JSONResponse) VisitNextSlotResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPostRequestObject struct {
+	Id PostID `json:"id"`
+}
+
+type GetPostResponseObject interface {
+	VisitGetPostResponse(w http.ResponseWriter) error
+}
+
+type GetPost200JSONResponse PostDetail
+
+func (response GetPost200JSONResponse) VisitGetPostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPost401JSONResponse struct{ ErrorJSONResponse }
+
+func (response GetPost401JSONResponse) VisitGetPostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPost404JSONResponse Error
+
+func (response GetPost404JSONResponse) VisitGetPostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePostRequestObject struct {
+	Id   PostID `json:"id"`
+	Body *UpdatePostJSONRequestBody
+}
+
+type UpdatePostResponseObject interface {
+	VisitUpdatePostResponse(w http.ResponseWriter) error
+}
+
+type UpdatePost200JSONResponse PostDetail
+
+func (response UpdatePost200JSONResponse) VisitUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePost400JSONResponse struct{ InvalidPostJSONResponse }
+
+func (response UpdatePost400JSONResponse) VisitUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePost401JSONResponse struct{ ErrorJSONResponse }
+
+func (response UpdatePost401JSONResponse) VisitUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePost404JSONResponse Error
+
+func (response UpdatePost404JSONResponse) VisitUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePost409JSONResponse Error
+
+func (response UpdatePost409JSONResponse) VisitUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MovePostRequestObject struct {
+	Id   PostID `json:"id"`
+	Body *MovePostJSONRequestBody
+}
+
+type MovePostResponseObject interface {
+	VisitMovePostResponse(w http.ResponseWriter) error
+}
+
+type MovePost204Response struct {
+}
+
+func (response MovePost204Response) VisitMovePostResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MovePost400JSONResponse struct{ ErrorJSONResponse }
+
+func (response MovePost400JSONResponse) VisitMovePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MovePost401JSONResponse Error
+
+func (response MovePost401JSONResponse) VisitMovePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MovePost404JSONResponse Error
+
+func (response MovePost404JSONResponse) VisitMovePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MovePost409JSONResponse Error
+
+func (response MovePost409JSONResponse) VisitMovePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePostGroupRequestObject struct {
+	Id PostID `json:"id"`
+}
+
+type DeletePostGroupResponseObject interface {
+	VisitDeletePostGroupResponse(w http.ResponseWriter) error
+}
+
+type DeletePostGroup204Response struct {
+}
+
+func (response DeletePostGroup204Response) VisitDeletePostGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePostGroup401JSONResponse struct{ ErrorJSONResponse }
+
+func (response DeletePostGroup401JSONResponse) VisitDeletePostGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePostGroup404JSONResponse Error
+
+func (response DeletePostGroup404JSONResponse) VisitDeletePostGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTagsRequestObject struct {
+}
+
+type ListTagsResponseObject interface {
+	VisitListTagsResponse(w http.ResponseWriter) error
+}
+
+type ListTags200JSONResponse []Tag
+
+func (response ListTags200JSONResponse) VisitListTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTags401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListTags401JSONResponse) VisitListTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTagRequestObject struct {
+	Body *CreateTagJSONRequestBody
+}
+
+type CreateTagResponseObject interface {
+	VisitCreateTagResponse(w http.ResponseWriter) error
+}
+
+type CreateTag201JSONResponse Tag
+
+func (response CreateTag201JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTag400JSONResponse struct{ ErrorJSONResponse }
+
+func (response CreateTag400JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTag401JSONResponse Error
+
+func (response CreateTag401JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTag409JSONResponse Error
+
+func (response CreateTag409JSONResponse) VisitCreateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTagRequestObject struct {
+	Id TagID `json:"id"`
+}
+
+type DeleteTagResponseObject interface {
+	VisitDeleteTagResponse(w http.ResponseWriter) error
+}
+
+type DeleteTag204Response struct {
+}
+
+func (response DeleteTag204Response) VisitDeleteTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTag401JSONResponse struct{ ErrorJSONResponse }
+
+func (response DeleteTag401JSONResponse) VisitDeleteTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTag404JSONResponse Error
+
+func (response DeleteTag404JSONResponse) VisitDeleteTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTagRequestObject struct {
+	Id   TagID `json:"id"`
+	Body *UpdateTagJSONRequestBody
+}
+
+type UpdateTagResponseObject interface {
+	VisitUpdateTagResponse(w http.ResponseWriter) error
+}
+
+type UpdateTag200JSONResponse Tag
+
+func (response UpdateTag200JSONResponse) VisitUpdateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTag400JSONResponse struct{ ErrorJSONResponse }
+
+func (response UpdateTag400JSONResponse) VisitUpdateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTag401JSONResponse Error
+
+func (response UpdateTag401JSONResponse) VisitUpdateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTag404JSONResponse Error
+
+func (response UpdateTag404JSONResponse) VisitUpdateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTag409JSONResponse Error
+
+func (response UpdateTag409JSONResponse) VisitUpdateTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -1728,6 +3083,42 @@ type StrictServerInterface interface {
 
 	// (PUT /media/{id})
 	UpdateMedia(ctx context.Context, request UpdateMediaRequestObject) (UpdateMediaResponseObject, error)
+
+	// (GET /posts)
+	ListCalendarPosts(ctx context.Context, request ListCalendarPostsRequestObject) (ListCalendarPostsResponseObject, error)
+
+	// (POST /posts)
+	CreatePosts(ctx context.Context, request CreatePostsRequestObject) (CreatePostsResponseObject, error)
+
+	// (GET /posts/list)
+	ListPosts(ctx context.Context, request ListPostsRequestObject) (ListPostsResponseObject, error)
+
+	// (GET /posts/next-slot)
+	NextSlot(ctx context.Context, request NextSlotRequestObject) (NextSlotResponseObject, error)
+
+	// (GET /posts/{id})
+	GetPost(ctx context.Context, request GetPostRequestObject) (GetPostResponseObject, error)
+
+	// (PUT /posts/{id})
+	UpdatePost(ctx context.Context, request UpdatePostRequestObject) (UpdatePostResponseObject, error)
+
+	// (PUT /posts/{id}/date)
+	MovePost(ctx context.Context, request MovePostRequestObject) (MovePostResponseObject, error)
+
+	// (DELETE /posts/{id}/group)
+	DeletePostGroup(ctx context.Context, request DeletePostGroupRequestObject) (DeletePostGroupResponseObject, error)
+
+	// (GET /tags)
+	ListTags(ctx context.Context, request ListTagsRequestObject) (ListTagsResponseObject, error)
+
+	// (POST /tags)
+	CreateTag(ctx context.Context, request CreateTagRequestObject) (CreateTagResponseObject, error)
+
+	// (DELETE /tags/{id})
+	DeleteTag(ctx context.Context, request DeleteTagRequestObject) (DeleteTagResponseObject, error)
+
+	// (PUT /tags/{id})
+	UpdateTag(ctx context.Context, request UpdateTagRequestObject) (UpdateTagResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -2259,6 +3650,347 @@ func (sh *strictHandler) UpdateMedia(w http.ResponseWriter, r *http.Request, id 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateMediaResponseObject); ok {
 		if err := validResponse.VisitUpdateMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCalendarPosts operation middleware
+func (sh *strictHandler) ListCalendarPosts(w http.ResponseWriter, r *http.Request, params ListCalendarPostsParams) {
+	var request ListCalendarPostsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCalendarPosts(ctx, request.(ListCalendarPostsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCalendarPosts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCalendarPostsResponseObject); ok {
+		if err := validResponse.VisitListCalendarPostsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePosts operation middleware
+func (sh *strictHandler) CreatePosts(w http.ResponseWriter, r *http.Request) {
+	var request CreatePostsRequestObject
+
+	var body CreatePostsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePosts(ctx, request.(CreatePostsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePosts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePostsResponseObject); ok {
+		if err := validResponse.VisitCreatePostsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPosts operation middleware
+func (sh *strictHandler) ListPosts(w http.ResponseWriter, r *http.Request, params ListPostsParams) {
+	var request ListPostsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPosts(ctx, request.(ListPostsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPosts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPostsResponseObject); ok {
+		if err := validResponse.VisitListPostsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// NextSlot operation middleware
+func (sh *strictHandler) NextSlot(w http.ResponseWriter, r *http.Request, params NextSlotParams) {
+	var request NextSlotRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.NextSlot(ctx, request.(NextSlotRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "NextSlot")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(NextSlotResponseObject); ok {
+		if err := validResponse.VisitNextSlotResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPost operation middleware
+func (sh *strictHandler) GetPost(w http.ResponseWriter, r *http.Request, id PostID) {
+	var request GetPostRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPost(ctx, request.(GetPostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPostResponseObject); ok {
+		if err := validResponse.VisitGetPostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePost operation middleware
+func (sh *strictHandler) UpdatePost(w http.ResponseWriter, r *http.Request, id PostID) {
+	var request UpdatePostRequestObject
+
+	request.Id = id
+
+	var body UpdatePostJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePost(ctx, request.(UpdatePostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePostResponseObject); ok {
+		if err := validResponse.VisitUpdatePostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MovePost operation middleware
+func (sh *strictHandler) MovePost(w http.ResponseWriter, r *http.Request, id PostID) {
+	var request MovePostRequestObject
+
+	request.Id = id
+
+	var body MovePostJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MovePost(ctx, request.(MovePostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MovePost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MovePostResponseObject); ok {
+		if err := validResponse.VisitMovePostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePostGroup operation middleware
+func (sh *strictHandler) DeletePostGroup(w http.ResponseWriter, r *http.Request, id PostID) {
+	var request DeletePostGroupRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePostGroup(ctx, request.(DeletePostGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePostGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePostGroupResponseObject); ok {
+		if err := validResponse.VisitDeletePostGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTags operation middleware
+func (sh *strictHandler) ListTags(w http.ResponseWriter, r *http.Request) {
+	var request ListTagsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTags(ctx, request.(ListTagsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTags")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTagsResponseObject); ok {
+		if err := validResponse.VisitListTagsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTag operation middleware
+func (sh *strictHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
+	var request CreateTagRequestObject
+
+	var body CreateTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTag(ctx, request.(CreateTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTagResponseObject); ok {
+		if err := validResponse.VisitCreateTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTag operation middleware
+func (sh *strictHandler) DeleteTag(w http.ResponseWriter, r *http.Request, id TagID) {
+	var request DeleteTagRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTag(ctx, request.(DeleteTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTagResponseObject); ok {
+		if err := validResponse.VisitDeleteTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTag operation middleware
+func (sh *strictHandler) UpdateTag(w http.ResponseWriter, r *http.Request, id TagID) {
+	var request UpdateTagRequestObject
+
+	request.Id = id
+
+	var body UpdateTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTag(ctx, request.(UpdateTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTagResponseObject); ok {
+		if err := validResponse.VisitUpdateTagResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

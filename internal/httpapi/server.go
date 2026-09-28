@@ -33,6 +33,7 @@ type Server struct {
 	Channels   *postgres.Channels
 	Telegram   *connect.Telegram
 	Media      *library.Library
+	Posts      *postgres.Posts
 	Files      storage.Files
 	Now        func() time.Time
 	Logger     *slog.Logger
