@@ -3,9 +3,9 @@
 Cubre F5, F7 y la renovación de F12, el paso 4 de F11, las filas de LinkedIn (perfil y página) y X de §6.4 y la configuración de X de §6.3. Es la primera vertical con OAuth: deja la base que usarán Meta y YouTube en S07.
 
 Se entrega en tres PRs apilados:
-- **Bloque A, OAuth y LinkedIn (perfil):** conectar, reconectar, tokens cifrados, renovación, aviso de caducidad y publicar en un perfil de LinkedIn.
+- **Bloque A, OAuth y LinkedIn:** conectar, reconectar, tokens cifrados, renovación, aviso de caducidad y publicar en LinkedIn, tanto en el perfil como en la página, con su paso intermedio.
 - **Bloque B, X:** conectar, publicar posts e hilos con medios, ajustes del editor, «Verificada» y quitar enlaces.
-- **Bloque C, LinkedIn (página) y extras:** la página con su paso intermedio, el carrusel de LinkedIn y los artículos de X.
+- **Bloque C, extras:** el carrusel de LinkedIn y los artículos de X.
 
 ## 1. Objetivo y límites
 
@@ -29,8 +29,7 @@ Fuera de S06:
 | Variable | Obligatoria | Qué es |
 |---|---|---|
 | `POSTIK_ENCRYPTION_KEY` | Sí, si hay alguna red con OAuth configurada | 32 bytes en base64. Cifra los tokens (constitución §8). Sin ella, `postik serve` no arranca si hay credenciales de LinkedIn o X |
-| `POSTIK_LINKEDIN_CLIENT_ID` y `POSTIK_LINKEDIN_CLIENT_SECRET` | No | App de LinkedIn. Sin ellas, LinkedIn no aparece en la rejilla |
-| `POSTIK_LINKEDIN_PAGES` | No, `false` | Ofrece LinkedIn Page. Solo funciona si la app tiene aprobado el producto *Community Management API*; sin él, LinkedIn rechaza la autorización |
+| `POSTIK_LINKEDIN_CLIENT_ID` y `POSTIK_LINKEDIN_CLIENT_SECRET` | No | App de LinkedIn. Sin ellas, ni LinkedIn ni LinkedIn Page aparecen en la rejilla. La página necesita que la app tenga aprobado el producto *Community Management API*; la de suntzu lo tiene, porque Postiz pide esos permisos incluso para el perfil |
 | `POSTIK_LINKEDIN_VERSION` | No, `202609` | Cabecera `Linkedin-Version`. LinkedIn mantiene cada versión un año como mínimo: hay que subirla al menos una vez al año |
 | `POSTIK_LINKEDIN_AUTH_URL` y `POSTIK_LINKEDIN_API_URL` | No, `https://www.linkedin.com` y `https://api.linkedin.com` | Para apuntar al LinkedIn falso |
 | `POSTIK_X_API_KEY` y `POSTIK_X_API_SECRET` | No | Claves de consumidor de la app de X (OAuth 1.0a). Sin ellas, X no aparece en la rejilla |
@@ -63,8 +62,15 @@ Fuera de S06:
    - La foto se descarga y se guarda en `avatars/`, como en Telegram, porque las URLs de las redes caducan.
 4. **Canal:**
    - **Perfil de LinkedIn y X:** se crea el canal o, si esa cuenta ya estaba en la organización, se actualiza como en Telegram (§6.3, unicidad): nombre, foto y tokens nuevos, y se conservan el cliente, las franjas y si está desactivado. Al conectar o reconectar, el canal deja de necesitar reconexión.
-   - **LinkedIn Page:** se crea un canal en paso intermedio, con `external_id` `pending:<sub>`, que no se puede usar hasta elegir la página (§6).
-5. **Reconexión (F7):** si la cuenta autorizada no es la del canal, no se toca nada y se responde `wrong_account`. Postiz lo trataría como una migración, pero manda la funcional (constitución §2).
+   - **LinkedIn Page:** se crea un canal en paso intermedio, con `external_id` `pending:<sub>` y los tokens de la persona, que no se puede usar hasta elegir la página (paso 5). Si esa persona ya tenía uno a medias en la organización, se reutiliza.
+5. **Elegir la página (F5, paso 5):**
+   - `GET /api/v1/channels/{id}/pages` lista las páginas en las que la persona es `ADMINISTRATOR` o `CONTENT_ADMINISTRATOR`, con la aprobación vigente: `GET /rest/organizationAcls?q=roleAssignee&state=APPROVED`, y el nombre y el logo de cada una con `GET /rest/organizations/{id}`.
+   - `PUT /api/v1/channels/{id}/page` con `pageId` comprueba que la página está en esa lista (si no, 403 `page_not_administered`) y deja el canal con el ID de la organización, su nombre, su `vanityName` como usuario y el logo guardado en `avatars/`. El canal sale del paso intermedio.
+   - Si la organización ya tenía esa página en otro canal, ese canal recibe los tokens nuevos y deja de necesitar reconexión, el canal intermedio se borra y se responde con el canal existente. Es la unicidad de §6.3.
+6. **Reconexión (F7):**
+   - **Perfil de LinkedIn y X:** la cuenta autorizada tiene que ser la del canal.
+   - **LinkedIn Page:** la persona que autoriza tiene que administrar la página del canal, según la lista del paso 5. No hay paso intermedio.
+   - Si no se cumple, no se toca nada y se responde `wrong_account`. Postiz lo trataría como una migración, pero manda la funcional (constitución §2).
 
 ## 4. Tokens y renovación (F11, paso 4; F12)
 
@@ -199,11 +205,11 @@ Las autorizaciones de más de una hora se borran al crear una nueva.
 
 | Método y ruta | Qué hace |
 |---|---|
-| `GET /api/v1/channels/providers` | Añade `linkedin`, `linkedin-page` (con `POSTIK_LINKEDIN_PAGES`) y `x`, si tienen credenciales |
+| `GET /api/v1/channels/providers` | Añade `linkedin`, `linkedin-page` y `x`, si tienen credenciales |
 | `POST /api/v1/channels/{provider}/authorizations` | `{ "channelId"?: "…" }` → `{ "url": "…" }` |
 | `GET /api/v1/channels/{provider}/callback` | Vuelta de la red; redirige a `/launches` (§3) |
-| `GET /api/v1/channels/{id}/pages` (C) | Páginas de LinkedIn que administra la persona: `id`, `name` y `picture` |
-| `PUT /api/v1/channels/{id}/page` (C) | `{ "pageId": "…" }` → el canal |
+| `GET /api/v1/channels/{id}/pages` | Páginas de LinkedIn que administra la persona: `id`, `name` y `picture` |
+| `PUT /api/v1/channels/{id}/page` | `{ "pageId": "…" }` → el canal (§3, paso 5) |
 | `PUT /api/v1/channels/{id}/settings` | `{ "verified": true \| false }`; solo en X |
 | `GET /api/v1/channels` | Añade `settings` |
 
@@ -244,18 +250,17 @@ Portada de Postiz (constitución §2):
 
 ## 13. Casos
 
-### A · OAuth y LinkedIn (perfil)
+### A · OAuth y LinkedIn
 
 ## S06.1 La rejilla ofrece solo las redes con credenciales
 
 Cubre: F5, paso 1; S4 de la funcional.
 
-- **Dado** una instancia con credenciales de LinkedIn y sin las de X, primero sin `POSTIK_LINKEDIN_PAGES` y después con él.
+- **Dado** una instancia con credenciales de LinkedIn y sin las de X.
 - **Cuando** se piden los proveedores.
 - **Entonces**:
-  - en el primer caso salen Telegram (si tiene bot) y LinkedIn;
-  - en el segundo, también LinkedIn Page;
-  - X no sale nunca.
+  - salen LinkedIn y LinkedIn Page, además de Telegram si tiene bot;
+  - X no sale.
 
 ## S06.2 Conectar LinkedIn crea el canal con su identidad y los tokens cifrados
 
@@ -294,7 +299,7 @@ Cubre: F5, errores; §3, comprobaciones.
   - redirige a `/launches` con `oauth_error` `denied`, `invalid_state`, `expired` y `missing_permissions`;
   - no se crea ningún canal.
 
-## S06.5 Reconectar deja el canal activo, y solo con la misma cuenta
+## S06.5 Reconectar el perfil deja el canal activo, y solo con la misma cuenta
 
 Cubre: F7; §3, reconexión.
 
@@ -304,19 +309,67 @@ Cubre: F7; §3, reconexión.
   - en otro canal igual, se reconecta con otra cuenta.
 - **Entonces**:
   - el primero deja de necesitar reconexión, con tokens nuevos y el post intacto;
-  - el segundo responde `wrong_account` y no cambia nada: ni tokens, ni nombre, ni estado.
+  - el segundo redirige con `wrong_account` y no cambia nada: ni tokens, ni nombre, ni estado.
 
-## S06.6 Un post sale en LinkedIn como texto plano y queda Publicado con enlace
+## S06.6 Conectar LinkedIn Page deja el canal en paso intermedio y lista las páginas
+
+Cubre: F5, paso 5; §3, pasos 4 y 5.
+
+- **Dado** el LinkedIn falso con una persona que administra «Zetesis» y «Nexo Labs», y que es solo analista de una tercera página.
+- **Cuando** conecta LinkedIn Page y pide las páginas.
+- **Entonces**:
+  - la URL de la red lleva los permisos de la página;
+  - la vuelta redirige a `/launches?continue=<canal>`;
+  - el canal está en paso intermedio y no se ofrece al crear posts;
+  - la lista trae «Zetesis» y «Nexo Labs», con su logo, y no la tercera.
+
+## S06.7 Elegir la página deja el canal listo, y solo si la persona la administra
+
+Cubre: F5, paso 5; §3, paso 5.
+
+- **Dado** el canal intermedio de S06.6.
+- **Cuando**:
+  - se elige una página que la persona no administra;
+  - después se elige «Zetesis».
+- **Entonces**:
+  - lo primero responde 403 `page_not_administered` y el canal sigue en paso intermedio;
+  - lo segundo deja el canal activo, llamado «Zetesis», con el ID de la organización, su `vanityName` y el logo en `avatars/`.
+
+## S06.8 Elegir una página que ya estaba conectada actualiza ese canal
+
+Cubre: F5, paso 4; §3, paso 5; §6.3, unicidad.
+
+- **Dado** un canal de la página «Zetesis» que necesita reconexión, con un post programado.
+- **Cuando** alguien de la organización conecta LinkedIn Page y elige «Zetesis».
+- **Entonces**:
+  - la respuesta es el canal que ya existía, que deja de necesitar reconexión y tiene los tokens nuevos;
+  - el canal intermedio ya no existe;
+  - el post sigue en su canal.
+
+## S06.9 Reconectar la página pide seguir administrándola
+
+Cubre: F7; §3, reconexión.
+
+- **Dado** dos canales de la página «Zetesis» que necesitan reconexión.
+- **Cuando**:
+  - en el primero, reconecta alguien que la administra;
+  - en el segundo, alguien que ya no la administra.
+- **Entonces**:
+  - el primero vuelve a estar activo, sin pasar por la rejilla de páginas;
+  - el segundo redirige con `wrong_account` y no cambia nada.
+
+## S06.10 Un post sale en LinkedIn como texto plano y queda Publicado con enlace
 
 Cubre: F11, pasos 3 y 5; §5, texto; §6.
 
-- **Dado** un post programado en un canal de LinkedIn cuyo HTML es `<p>Hola <strong>mundo</strong> (#1)</p><ul><li><p>uno</p></li></ul>`.
+- **Dado** un post programado cuyo HTML es `<p>Hola <strong>mundo</strong> (#1)</p><ul><li><p>uno</p></li></ul>`, en un canal de perfil y en otro de página.
 - **Cuando** se ejecuta su `publish_value`.
 - **Entonces**:
-  - LinkedIn recibe `POST /rest/posts` con las cabeceras de versión y protocolo, el autor `urn:li:person:<sub>` y el texto `Hola 𝗺𝘂𝗻𝗱𝗼 \(\#1\)\n- uno`;
-  - el post queda Publicado, con el enlace `https://www.linkedin.com/feed/update/<urn>/`.
+  - LinkedIn recibe `POST /rest/posts` con las cabeceras de versión y protocolo y el texto `Hola 𝗺𝘂𝗻𝗱𝗼 \(\#1\)\n- uno`;
+  - el autor es `urn:li:person:<sub>` en el perfil y `urn:li:organization:<id>` en la página;
+  - los dos quedan Publicados, con el enlace `https://www.linkedin.com/feed/update/<urn>/`.
 
-## S06.7 Los medios se suben desde el disco y el tipo decide el post
+## S06.11 Los medios se suben desde el disco y el tipo decide el post
 
 Cubre: F11, paso 3; §6, medios.
 
@@ -328,17 +381,17 @@ Cubre: F11, paso 3; §6, medios.
   - el tercero sube el vídeo en trozos, lo finaliza con sus `ETag` y lo publica cuando está `AVAILABLE`;
   - LinkedIn recibe el contenido de los ficheros del disco.
 
-## S06.8 Los comentarios de LinkedIn responden al post principal
+## S06.12 Los comentarios de LinkedIn responden al post principal
 
 Cubre: F11, paso 3; §5, a qué responde cada comentario.
 
-- **Dado** un post con el principal y dos comentarios.
+- **Dado** un post con el principal y dos comentarios, en un canal de página.
 - **Cuando** se publican.
 - **Entonces**:
   - los dos comentarios van a `socialActions/<urn del principal>/comments`, en orden;
-  - llevan como `actor` el autor del post.
+  - llevan como `actor` la organización.
 
-## S06.9 Un fallo antes del punto sin retorno se reintenta y no publica dos veces
+## S06.13 Un fallo antes del punto sin retorno se reintenta y no publica dos veces
 
 Cubre: F11, reintentos; §5, punto sin retorno.
 
@@ -350,7 +403,7 @@ Cubre: F11, reintentos; §5, punto sin retorno.
   - el primero queda Publicado, con un solo post en LinkedIn;
   - el segundo queda en Error `unconfirmed` y no se reintenta.
 
-## S06.10 Un token caducado se renueva y el post sale una sola vez
+## S06.14 Un token caducado se renueva y el post sale una sola vez
 
 Cubre: F11, paso 4; F12, bajo demanda; §4.
 
@@ -363,7 +416,7 @@ Cubre: F11, paso 4; F12, bajo demanda; §4.
   - el segundo renueva tras el 401 y repite la llamada;
   - los dos quedan Publicados, con un solo post cada uno, y los tokens nuevos guardados.
 
-## S06.11 Si no se puede renovar, el canal pide reconexión y se avisa a todos
+## S06.15 Si no se puede renovar, el canal pide reconexión y se avisa a todos
 
 Cubre: F11, otros casos; F12, si la renovación falla; §4.
 
@@ -376,7 +429,7 @@ Cubre: F11, otros casos; F12, si la renovación falla; §4.
   - los dos posts quedan en Error `channel_refresh`;
   - hay dos notificaciones `refresh_failed`, y Ana recibe los dos correos.
 
-## S06.12 El aviso de caducidad sale una vez, y al caducar el canal pide reconexión
+## S06.16 El aviso de caducidad sale una vez, y al caducar el canal pide reconexión
 
 Cubre: F12, aviso de caducidad; §4.
 
@@ -388,7 +441,7 @@ Cubre: F12, aviso de caducidad; §4.
   - hay una sola notificación `channel_expiring`, con 6 días, y su correo;
   - después, el canal necesita reconexión y hay una notificación `refresh_failed`.
 
-## S06.13 El servidor rechaza lo que LinkedIn no admite
+## S06.17 El servidor rechaza lo que LinkedIn no admite
 
 Cubre: F9, errores; §8.
 
@@ -400,7 +453,7 @@ Cubre: F9, errores; §8.
   - con un comentario que lleva una imagen.
 - **Entonces** responde 400 con `too_long`, `video_alone`, `too_many_media` y `comment_media`, en ese orden, y no guarda nada.
 
-## S06.14 Conectar LinkedIn desde la rejilla
+## S06.18 Conectar LinkedIn desde la rejilla
 
 Cubre: F5; §11.
 
@@ -410,7 +463,17 @@ Cubre: F5; §11.
   - vuelve a `/launches` con el aviso «Canal añadido»;
   - el canal aparece en la barra lateral con su nombre y su foto.
 
-## S06.15 Un canal desconectado se ve y se reconecta
+## S06.19 Conectar LinkedIn Page elige la página en la rejilla
+
+Cubre: F5, paso 5; §11; funcional §8.3.
+
+- **Dado** una persona en `/launches`, con el LinkedIn falso y dos páginas que administra.
+- **Cuando** elige LinkedIn Page, marca «Zetesis» en la rejilla y pulsa «Guardar».
+- **Entonces**:
+  - al volver de la red se abre la rejilla con las dos páginas;
+  - tras guardar, el canal «Zetesis» aparece activo en la barra lateral.
+
+## S06.20 Un canal desconectado se ve y se reconecta
 
 Cubre: F7; F8, «Reconectar»; §11.
 
@@ -420,7 +483,7 @@ Cubre: F7; F8, «Reconectar»; §11.
   - antes de pulsar, el avatar lleva el «!» rojo y el aviso;
   - tras la vuelta, el «!» desaparece.
 
-## S06.16 «Publicar ya» sale en LinkedIn y la tarjeta enlaza a la publicación
+## S06.21 «Publicar ya» sale en LinkedIn y la tarjeta enlaza a la publicación
 
 Cubre: F9, «Publicar ya»; F11; §11.
 
@@ -432,32 +495,27 @@ Cubre: F9, «Publicar ya»; F11; §11.
 
 ### B · X (casos que se detallan en su PR)
 
-- **S06.17** Conectar X por OAuth 1.0a: *request token*, vuelta con *verifier*, identidad, «Verificada» inicial y firma válida en cada llamada.
-- **S06.18** Un post sale en X como texto plano, con enlace `x.com/<usuario>/status/<id>`, y su hilo encadena cada elemento al anterior.
-- **S06.19** Medios de X: hasta 4 imágenes, o un vídeo esperando su procesado; `media_ids` en el post.
-- **S06.20** Ajustes de X en el post: `reply_settings` (no se envía con `everyone`), comunidad, `made_with_ai` y `paid_partnership`.
-- **S06.21** Con `POSTIK_X_STRIP_LINKS`, las URLs no llegan a X.
-- **S06.22** Recuento de X: URL = 23 y emoji = 2; 280, o 4.000 con «Verificada»; el servidor rechaza `too_long`.
-- **S06.23** Errores de X: el contenido duplicado queda en Error sin reintento, un 429 se reintenta y un 401 deja el canal pendiente de reconexión.
-- **S06.24** (pantalla) Conectar X y publicar un hilo con «Publicar ya».
-- **S06.25** (pantalla) «Ajustes adicionales» > «Verificada» sube el contador del editor a 4.000.
-- **S06.26** (pantalla) El editor pide «quién puede responder» antes de guardar en X.
+- **S06.22** Conectar X por OAuth 1.0a: *request token*, vuelta con *verifier*, identidad, «Verificada» inicial y firma válida en cada llamada.
+- **S06.23** Un post sale en X como texto plano, con enlace `x.com/<usuario>/status/<id>`, y su hilo encadena cada elemento al anterior.
+- **S06.24** Medios de X: hasta 4 imágenes, o un vídeo esperando su procesado; `media_ids` en el post.
+- **S06.25** Ajustes de X en el post: `reply_settings` (no se envía con `everyone`), comunidad, `made_with_ai` y `paid_partnership`.
+- **S06.26** Con `POSTIK_X_STRIP_LINKS`, las URLs no llegan a X.
+- **S06.27** Recuento de X: URL = 23 y emoji = 2; 280, o 4.000 con «Verificada»; el servidor rechaza `too_long`.
+- **S06.28** Errores de X: el contenido duplicado queda en Error sin reintento, un 429 se reintenta y un 401 deja el canal pendiente de reconexión.
+- **S06.29** (pantalla) Conectar X y publicar un hilo con «Publicar ya».
+- **S06.30** (pantalla) «Ajustes adicionales» > «Verificada» sube el contador del editor a 4.000.
+- **S06.31** (pantalla) El editor pide «quién puede responder» antes de guardar en X.
 
-### C · LinkedIn (página), carrusel y artículos (casos que se detallan en su PR)
+### C · Carrusel de LinkedIn y artículos de X (casos que se detallan en su PR)
 
-- **S06.27** Conectar LinkedIn Page: canal en paso intermedio, rejilla con las páginas que administra la persona, y «Guardar» deja la página con su ID, nombre y logo.
-- **S06.28** Elegir una página que ya estaba conectada actualiza ese canal y borra el intermedio.
-- **S06.29** Reconectar una página que la persona ya no administra responde `wrong_account`.
-- **S06.30** Publicar como página: el autor y el `actor` de los comentarios son `urn:li:organization:<id>`.
-- **S06.31** Carrusel de LinkedIn: las imágenes salen en un PDF subido como documento, con su nombre; menos de 2 imágenes o un vídeo dan `carousel_media`.
-- **S06.32** Artículos de X: borrador y publicación, con título y estado obligatorios; solo imágenes; sin comentarios en borrador.
-- **S06.33** (pantalla) La rejilla de páginas y «Guardar».
+- **S06.32** Carrusel de LinkedIn: las imágenes salen en un PDF subido como documento, con su nombre; menos de 2 imágenes o un vídeo dan `carousel_media`.
+- **S06.33** Artículos de X: borrador y publicación, con título y estado obligatorios; solo imágenes; sin comentarios en borrador.
 
 ## 14. Preguntas abiertas
 
 | Id | Pregunta | Hace falta en |
 |---|---|---|
-| Q1 | ¿La app de LinkedIn de suntzu tiene aprobado *Community Management API*? Sin él no hay LinkedIn Page ni, probablemente, refresh tokens: hay que reconectar cada 60 días, con el aviso de §4. | A (refresh), C (página) |
+| Q1 | **Cerrada (2026-09-28):** Rubén publica en su perfil y en la página desde suntzu, así que la app tiene *Community Management API*. Queda por ver en la primera prueba real si LinkedIn entrega refresh token; si no, se reconecta cada 60 días, con el aviso de §4. | A |
 | Q2 | ¿La app de X tiene crédito en el pago por uso? Hoy X cobra cada post: unos 0,015 $ sin enlace y 0,20 $ con enlace. De eso depende activar `POSTIK_X_STRIP_LINKS`. | B |
 | Q3 | Artículos de X: exigen X Premium en la cuenta. Si no se van a usar, salen de C. | C |
 | Q4 | **[Por comprobar]** Si `w_member_social` basta para comentar como persona. La API de comentarios nombra `w_member_social_feed`. Se confirma en la primera prueba real; si falta, se añade a los permisos pedidos. | A |
