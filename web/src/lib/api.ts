@@ -75,3 +75,13 @@ export const mediaQuery = (page: number, search: string) =>
         'GET /media'
       ),
   });
+
+export type CalendarPost = components['schemas']['CalendarPost'];
+export type PostDetail = components['schemas']['PostDetail'];
+export type Tag = components['schemas']['Tag'];
+export type InvalidPost = components['schemas']['InvalidPost'];
+
+export const tagsQuery = queryOptions({
+  queryKey: ['tags'],
+  queryFn: () => required(api.GET('/tags'), 'GET /tags'),
+});
