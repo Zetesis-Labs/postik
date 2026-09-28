@@ -16,7 +16,7 @@ Al terminar S05:
 - **Barrido horario:** relanza los programados de las últimas 48 horas que se quedaron sin salir.
 - **Vincular publicación:** el enlace de un post publicado sin enlace se puede poner a mano.
 - **Campana:** muestra las notificaciones de la organización, con las no leídas de cada miembro.
-- **Correos:** los informativos, siempre; los de fallo, al momento; los de éxito, en un resumen horario. Cada miembro elige en Ajustes > General.
+- **Correos:** los informativos, siempre; los de fallo, al momento; los de éxito, en un resumen horario. Cada miembro elige en Configuración.
 
 Fuera de S05:
 
@@ -152,7 +152,7 @@ Los que llevan más de 48 horas vencidos siguen como Programados y no se tocan.
 - **Pie de los correos:** enlace a `<POSTIK_PUBLIC_URL>/settings`.
 - **Preferencias:**
   - en el usuario, activadas por defecto, como en Postiz;
-  - en Ajustes > General, con dos casillas: correos de éxito y correos de fallo;
+  - en Configuración > Configuración global, con los dos interruptores de Postiz: correos de éxito y correos de fallo;
   - `GET /api/v1/me` las devuelve y `PUT /api/v1/me/preferences` las cambia.
 
 ## 9. Modelo de datos
@@ -174,7 +174,7 @@ Portada de Postiz (constitución, §2):
   - Error: borde rojo y el motivo en el aviso;
   - Publicado sin enlace: icono «Vincular publicación» (`launches/missing-release.modal.tsx`).
 - **Campana** (B): `notifications/notification.component.tsx`, con los datos de nuestra API.
-- **Ajustes** (B): ruta `/settings` con la pestaña General y las dos casillas de Postiz.
+- **Configuración** (B): ruta `/settings`, con la columna de pestañas de Postiz y, de momento, solo «Configuración global» con sus dos interruptores de correo (`settings/email-notifications.component.tsx`). Se llega desde el menú lateral.
 
 ## 11. Pruebas
 
@@ -372,4 +372,77 @@ Cubre: F11, fin; §6.6, tarjeta; §10.
 
 ### B · Avisos
 
-Los casos del bloque B (S05.17 en adelante) entran con su PR.
+## S05.17 Cada resultado crea su notificación
+
+Cubre: F11, avisos; §8.
+
+- **Dado** tres posts: uno que sale bien, uno que Telegram rechaza y uno en un canal desactivado.
+- **Cuando** se publican.
+- **Entonces** la organización tiene tres notificaciones, `published`, `failed` y `channel_disabled`, con sus datos (enlace, canal y motivo).
+
+## S05.18 La campana cuenta las no leídas de cada miembro
+
+Cubre: F18; §8, no leídas.
+
+- **Dado** una organización con Ana y Bruno, y 12 notificaciones.
+- **Cuando** Ana abre el panel y después llega una notificación más.
+- **Entonces**:
+  - Ana ve las 10 últimas y 1 sin leer;
+  - Bruno sigue con 13 sin leer.
+
+## S05.19 El correo de fallo sale al momento, a quien lo quiere
+
+Cubre: §6.8, fallo; §8, correo.
+
+- **Dado** Ana con los correos de fallo activados y Bruno con ellos desactivados.
+- **Cuando** falla un post.
+- **Entonces**:
+  - Resend recibe un correo para Ana, con el motivo y el enlace a Configuración en el pie;
+  - Bruno no recibe nada;
+  - sin Resend configurado, no se intenta enviar nada y la notificación se crea igual.
+
+## S05.20 Los avisos informativos llegan a todos
+
+Cubre: §6.8, informativo.
+
+- **Dado** Ana y Bruno con todos los correos desactivados.
+- **Cuando** un post no sale porque su canal está desactivado.
+- **Entonces** los dos reciben el correo.
+
+## S05.21 Los éxitos llegan en un resumen por hora, sin repetirse
+
+Cubre: §6.8, éxito; §8, correo.
+
+- **Dado** tres posts publicados en la última hora, Ana con los correos de éxito activados y Bruno sin ellos.
+- **Cuando** se ejecuta el resumen dos veces seguidas.
+- **Entonces**:
+  - la primera vez, Ana recibe un correo con las tres publicaciones;
+  - Bruno no recibe nada;
+  - la segunda vez no sale ningún correo.
+
+## S05.22 Las preferencias se guardan por persona
+
+Cubre: §6.8, preferencias.
+
+- **Dado** Ana, con las dos preferencias activadas por defecto.
+- **Cuando** desactiva los correos de éxito.
+- **Entonces** `GET /api/v1/me` devuelve los de éxito desactivados y los de fallo activados, y a Bruno no le cambia nada.
+
+## S05.23 La campana muestra lo nuevo y se pone a cero al abrirla
+
+Cubre: F18; §10.
+
+- **Dado** una persona que acaba de publicar un post con «Publicar ya».
+- **Cuando** mira la campana y la abre.
+- **Entonces**:
+  - el contador muestra 1;
+  - el panel lista «Tu post se ha publicado en Telegram», con el enlace;
+  - al abrirlo, el contador desaparece.
+
+## S05.24 Configuración guarda los interruptores de correo
+
+Cubre: §6.8, preferencias; §10.
+
+- **Dado** una persona en `/settings`.
+- **Cuando** apaga «Correos de éxito» y recarga la página.
+- **Entonces** el interruptor sigue apagado y el de fallos, encendido.
