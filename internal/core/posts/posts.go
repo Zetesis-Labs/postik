@@ -32,7 +32,9 @@ const (
 
 // limits are the character limits of §6.4, counted on the plain text.
 var limits = map[string]int{
-	"telegram": 4096,
+	"telegram":      4096,
+	"linkedin":      3000,
+	"linkedin-page": 3000,
 }
 
 // Limit returns the character limit of a provider, or 0 when it has none.
@@ -63,13 +65,14 @@ func Length(content string) int {
 	return len(utf16.Encode([]rune(PlainText(content))))
 }
 
+// Value is a value of a post: its content and the kinds of its media.
 type Value struct {
-	Content    string
-	MediaCount int
+	Content string
+	Media   []string
 }
 
 func (v Value) Empty() bool {
-	return strings.TrimSpace(PlainText(v.Content)) == "" && v.MediaCount == 0
+	return strings.TrimSpace(PlainText(v.Content)) == "" && len(v.Media) == 0
 }
 
 type ChannelSubmission struct {
@@ -101,7 +104,35 @@ const (
 	CodePastDate           = "past_date"
 	CodeChannelUnavailable = "channel_unavailable"
 	CodeNoChannels         = "no_channels"
+	CodeVideoAlone         = "video_alone"
+	CodeTooManyMedia       = "too_many_media"
+	CodeCommentMedia       = "comment_media"
 )
+
+// linkedInMaxImages is the most images a LinkedIn post can show.
+const linkedInMaxImages = 20
+
+// mediaProblem applies the media rules of each network (S06 §8).
+func mediaProblem(provider string, index int, media []string) string {
+	if provider != "linkedin" && provider != "linkedin-page" {
+		return ""
+	}
+	videos := 0
+	for _, kind := range media {
+		if kind == "video" {
+			videos++
+		}
+	}
+	switch {
+	case index > 0 && len(media) > 0:
+		return CodeCommentMedia
+	case videos > 0 && len(media) > 1:
+		return CodeVideoAlone
+	case len(media) > linkedInMaxImages:
+		return CodeTooManyMedia
+	}
+	return ""
+}
 
 // PastMargin tolerates the minute that passes between choosing a time and saving.
 const PastMargin = time.Minute
@@ -157,8 +188,14 @@ func validateValues(c ChannelSubmission, draft bool) []Problem {
 			problems = append(problems, at(i, CodeEmpty))
 			continue
 		}
-		if limit := Limit(c.Provider); !draft && limit > 0 && Length(v.Content) > limit {
+		if draft {
+			continue
+		}
+		if limit := Limit(c.Provider); limit > 0 && Length(v.Content) > limit {
 			problems = append(problems, at(i, CodeTooLong))
+		}
+		if code := mediaProblem(c.Provider, i, v.Media); code != "" {
+			problems = append(problems, at(i, code))
 		}
 	}
 	return problems

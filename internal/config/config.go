@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/base32"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -18,8 +19,19 @@ type Config struct {
 	OIDC              *OIDC
 	RequireInvitation bool
 	Telegram          *Telegram
+	LinkedIn          *LinkedIn
 	Email             *Email
 	StorageDir        string
+	// EncryptionKey seals the tokens of the networks (constitution §8).
+	EncryptionKey []byte
+}
+
+type LinkedIn struct {
+	ClientID     string
+	ClientSecret string
+	Version      string
+	AuthURL      string
+	APIURL       string
 }
 
 // Email is Resend: without it postik sends no email.
@@ -106,6 +118,20 @@ func Load(getenv func(string) string) (Config, error) {
 		}
 	}
 
+	linkedIn, linkedInProblems := loadLinkedIn(value)
+	cfg.LinkedIn = linkedIn
+	problems = append(problems, linkedInProblems...)
+
+	if raw := value("POSTIK_ENCRYPTION_KEY"); raw != "" {
+		key, err := base64.StdEncoding.DecodeString(raw)
+		if err != nil || len(key) != 32 {
+			problems = append(problems, errors.New("POSTIK_ENCRYPTION_KEY must be 32 bytes in base64"))
+		}
+		cfg.EncryptionKey = key
+	} else if cfg.LinkedIn != nil {
+		problems = append(problems, errors.New("POSTIK_ENCRYPTION_KEY is required when a network with OAuth is configured"))
+	}
+
 	if key := value("POSTIK_RESEND_API_KEY"); key != "" {
 		cfg.Email = &Email{APIKey: key, From: value("POSTIK_EMAIL_FROM"), APIURL: strings.TrimRight(value("POSTIK_RESEND_API_URL"), "/")}
 		if cfg.Email.From == "" {
@@ -132,6 +158,35 @@ func Load(getenv func(string) string) (Config, error) {
 		return Config{}, errors.Join(problems...)
 	}
 	return cfg, nil
+}
+
+// loadLinkedIn returns nil when the app of LinkedIn is not configured. The
+// client ID and secret go together.
+func loadLinkedIn(value func(string) string) (*LinkedIn, []error) {
+	id, secret := value("POSTIK_LINKEDIN_CLIENT_ID"), value("POSTIK_LINKEDIN_CLIENT_SECRET")
+	if id == "" && secret == "" {
+		return nil, nil
+	}
+	if id == "" || secret == "" {
+		return nil, []error{errors.New("POSTIK_LINKEDIN_CLIENT_ID and POSTIK_LINKEDIN_CLIENT_SECRET go together")}
+	}
+	linkedIn := &LinkedIn{
+		ClientID:     id,
+		ClientSecret: secret,
+		Version:      value("POSTIK_LINKEDIN_VERSION"),
+		AuthURL:      strings.TrimRight(value("POSTIK_LINKEDIN_AUTH_URL"), "/"),
+		APIURL:       strings.TrimRight(value("POSTIK_LINKEDIN_API_URL"), "/"),
+	}
+	if linkedIn.Version == "" {
+		linkedIn.Version = "202609"
+	}
+	if linkedIn.AuthURL == "" {
+		linkedIn.AuthURL = "https://www.linkedin.com"
+	}
+	if linkedIn.APIURL == "" {
+		linkedIn.APIURL = "https://api.linkedin.com"
+	}
+	return linkedIn, nil
 }
 
 // loadOIDC returns nil when no provider is configured. The issuer, client ID

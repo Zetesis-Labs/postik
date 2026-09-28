@@ -9,6 +9,7 @@ import { ChannelsSidebar } from '@/components/launches/channels-sidebar';
 import { CalendarWeekProvider, toIntegration } from '@/components/launches/calendar-context';
 import { Filters } from '@/components/launches/filters';
 import { Calendar } from '@/components/launches/calendar';
+import { OAuthReturn } from '@/components/launches/oauth-return';
 
 export function LaunchesPage() {
   const t = useT();
@@ -16,6 +17,7 @@ export function LaunchesPage() {
   const integrations = useMemo(() => channels.map(toIntegration), [channels]);
   return (
     <MemberFrame title={t('calendar', 'Calendar')}>
+      <OAuthReturn />
       <DndProvider backend={HTML5Backend}>
         <CalendarWeekProvider integrations={integrations}>
           <ChannelsSidebar />

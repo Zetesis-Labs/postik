@@ -32,6 +32,7 @@ type Server struct {
 	Identity      IdentityReader
 	Channels      *postgres.Channels
 	Telegram      *connect.Telegram
+	OAuth         *connect.OAuth
 	Media         *library.Library
 	Posts         *postgres.Posts
 	Notifications *postgres.Notifications

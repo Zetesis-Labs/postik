@@ -89,7 +89,7 @@ func (s *Channels) FindByExternal(ctx context.Context, orgID uuid.UUID, provider
 func (s *Channels) Save(ctx context.Context, channel *Channel) error {
 	_, err := s.db.NewInsert().Model(channel).
 		On("CONFLICT (id) DO UPDATE").
-		Set("name = EXCLUDED.name, username = EXCLUDED.username, picture = EXCLUDED.picture, disabled = EXCLUDED.disabled, refresh_needed = EXCLUDED.refresh_needed, in_between_steps = EXCLUDED.in_between_steps, customer_id = EXCLUDED.customer_id, posting_times = EXCLUDED.posting_times, updated_at = EXCLUDED.updated_at").
+		Set("external_id = EXCLUDED.external_id, name = EXCLUDED.name, username = EXCLUDED.username, picture = EXCLUDED.picture, disabled = EXCLUDED.disabled, refresh_needed = EXCLUDED.refresh_needed, in_between_steps = EXCLUDED.in_between_steps, customer_id = EXCLUDED.customer_id, posting_times = EXCLUDED.posting_times, updated_at = EXCLUDED.updated_at").
 		Exec(ctx)
 	return err
 }
@@ -121,6 +121,12 @@ func (s *Channels) SetPostingTimes(ctx context.Context, orgID, id uuid.UUID, tim
 
 func (s *Channels) SetCustomer(ctx context.Context, orgID, id uuid.UUID, customerID *uuid.UUID, now time.Time) error {
 	return s.update(ctx, orgID, id, now, "customer_id = ?", customerID)
+}
+
+// MarkRefreshNeeded asks for the channel to be reconnected, whatever its organization.
+func (s *Channels) MarkRefreshNeeded(ctx context.Context, id uuid.UUID, now time.Time) error {
+	_, err := s.db.NewUpdate().Model((*Channel)(nil)).Set("refresh_needed = true").Set("updated_at = ?", now).Where("id = ?", id).Exec(ctx)
+	return err
 }
 
 func (s *Channels) Delete(ctx context.Context, orgID, id uuid.UUID) error {

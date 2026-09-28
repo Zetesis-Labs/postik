@@ -9,6 +9,9 @@ import { AddProviderButton } from '@/components/launches/add-provider';
 import { Menu } from '@/components/launches/channel-menu';
 import { NewPost } from '@/components/launches/new-post';
 import { storedMode } from '@/components/layout/mode';
+import { useToaster } from '@/components/ui/toaster';
+import { useContinuePage } from '@/components/launches/continue-page';
+import { startAuthorization } from '@/lib/channel-oauth';
 
 export const SVGLine = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="5" height="52" viewBox="0 0 5 52" fill="none" className="rtl:rotate-180">
@@ -123,24 +126,54 @@ const MenuComponent: FC<{ integration: Channel; collapsed: boolean; onChange: ()
   collapsed,
   onChange,
 }) => {
+  const t = useT();
+  const toaster = useToaster();
+  const continuePage = useContinuePage();
   const [, drag, dragPreview] = useDrag(() => ({ type: 'menu', item: { id: integration.id } }), [integration.id]);
+  const reconnect = useCallback(() => {
+    startAuthorization(integration.provider, integration.id).catch(() =>
+      toaster.show(t('network_unreachable', 'The network could not be reached'), 'warning')
+    );
+  }, [integration.id, integration.provider, t, toaster]);
   return (
     <div
       ref={(node) => void dragPreview(node)}
       data-testid="channel"
       data-disabled={integration.disabled ? 'true' : 'false'}
+      data-refresh-needed={integration.refreshNeeded ? 'true' : 'false'}
+      {...(integration.refreshNeeded && {
+        onClick: reconnect,
+        'data-tooltip-id': 'tooltip',
+        'data-tooltip-content': t('channel_disconnected_click_to_reconnect', 'Channel disconnected, click to reconnect.'),
+      })}
       {...(collapsed ? { 'data-tooltip-id': 'tooltip', 'data-tooltip-content': integration.name } : {})}
       className={clsx(
         'flex gap-[12px] items-center bg-newBgColorInner hover:bg-boxHover group/profile transition-all rounded-e-[8px]',
         integration.refreshNeeded && 'cursor-pointer'
       )}
     >
-      <div className={clsx('relative gap-[6px] flex justify-center items-center', integration.disabled && 'opacity-50')}>
+      <div
+        className={clsx(
+          'relative gap-[6px] flex justify-center items-center',
+          (integration.disabled || integration.inBetweenSteps) && 'opacity-50'
+        )}
+      >
         <div className="h-full w-[4px] -ms-[12px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity">
           <SVGLine />
         </div>
         {(integration.inBetweenSteps || integration.refreshNeeded) && (
-          <div className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer">
+          <div
+            className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer"
+            data-testid="channel-attention"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (integration.refreshNeeded) {
+                reconnect();
+              } else {
+                continuePage(integration.id);
+              }
+            }}
+          >
             <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-[5px] top-[5px] absolute z-[200] text-[10px] flex justify-center items-center">
               !
             </div>

@@ -212,6 +212,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/channels/{provider}/authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts connecting (or, with channelId, reconnecting) a channel with OAuth. The screen sends the browser to url. */
+        post: operations["startChannelAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/channels/{id}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The pages the member who connected a channel in between steps can choose from. */
+        get: operations["listChannelPages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/channels/{id}/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Chooses the page of a channel in between steps. Answers the channel that holds the page, which is another one when the page was already connected. */
+        put: operations["chooseChannelPage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/media": {
         parameters: {
             query?: never;
@@ -647,6 +698,21 @@ export interface components {
             customer?: components["schemas"]["Customer"];
             postingTimes: number[];
         };
+        ChannelAuthorizationInput: {
+            /**
+             * Format: uuid
+             * @description The channel to reconnect.
+             */
+            channelId?: string;
+        };
+        ChannelAuthorization: {
+            url: string;
+        };
+        ChannelPage: {
+            id: string;
+            name: string;
+            picture?: string;
+        };
         /** @description With name, moves by name (created if missing; blank removes). Otherwise moves to customerId, or removes when it is absent or null. */
         ChannelCustomer: {
             name?: string;
@@ -1060,6 +1126,94 @@ export interface operations {
             };
             401: components["responses"]["Error"];
             404: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
+    startChannelAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelAuthorizationInput"];
+            };
+        };
+        responses: {
+            /** @description Authorization started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelAuthorization"];
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
+    listChannelPages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ChannelID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelPage"][];
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
+    chooseChannelPage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ChannelID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    pageId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The channel of the page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
             502: components["responses"]["Error"];
         };
     };

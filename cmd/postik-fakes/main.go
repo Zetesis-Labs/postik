@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/zetesis-labs/postik/internal/testsupport/fakelinkedin"
 	"github.com/zetesis-labs/postik/internal/testsupport/fakeoidc"
 	"github.com/zetesis-labs/postik/internal/testsupport/fakeresend"
 	"github.com/zetesis-labs/postik/internal/testsupport/faketelegram"
@@ -30,9 +31,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/telegram/", http.StripPrefix("/telegram", bot.Handler()))
 	mux.Handle("/resend/", http.StripPrefix("/resend", fakeresend.New().Handler()))
+	mux.Handle("/linkedin/", http.StripPrefix("/linkedin", fakelinkedin.New(*issuer+"/linkedin").Handler()))
 	mux.Handle("/", provider.Handler())
 
-	logger.Info("postik-fakes is listening", "addr", *addr, "oidc_issuer", *issuer, "telegram_api", *issuer+"/telegram", "telegram_token", faketelegram.Token, "resend_api", *issuer+"/resend", "resend_key", fakeresend.APIKey)
+	logger.Info("postik-fakes is listening", "addr", *addr, "oidc_issuer", *issuer, "telegram_api", *issuer+"/telegram", "telegram_token", faketelegram.Token, "resend_api", *issuer+"/resend", "resend_key", fakeresend.APIKey, "linkedin", *issuer+"/linkedin", "linkedin_client", fakelinkedin.ClientID)
 	if err := http.ListenAndServe(*addr, mux); err != nil {
 		logger.Error("serve", "error", err)
 		os.Exit(1)

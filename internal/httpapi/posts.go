@@ -191,7 +191,13 @@ func (r resolved) channelSubmission(id uuid.UUID, values []PostValueInput) posts
 		sub.Available = !channel.Disabled && !channel.InBetweenSteps
 	}
 	for _, v := range values {
-		sub.Values = append(sub.Values, posts.Value{Content: v.Content, MediaCount: len(v.Media)})
+		value := posts.Value{Content: v.Content}
+		for _, ref := range v.Media {
+			if m, ok := r.media[ref.Id]; ok {
+				value.Media = append(value.Media, m.Kind)
+			}
+		}
+		sub.Values = append(sub.Values, value)
 	}
 	return sub
 }

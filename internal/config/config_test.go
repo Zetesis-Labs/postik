@@ -122,3 +122,26 @@ func TestIncompleteConfigurationNamesTheVariable(t *testing.T) {
 		})
 	}
 }
+
+func TestLinkedInNeedsTheEncryptionKey(t *testing.T) {
+	env := validEnv()
+	env["POSTIK_LINKEDIN_CLIENT_ID"] = "client"
+	env["POSTIK_LINKEDIN_CLIENT_SECRET"] = "secret"
+	if _, err := Load(envFrom(env)); err == nil || !strings.Contains(err.Error(), "POSTIK_ENCRYPTION_KEY") {
+		t.Fatalf("Load without key: %v", err)
+	}
+
+	env["POSTIK_ENCRYPTION_KEY"] = "c2hvcnQ="
+	if _, err := Load(envFrom(env)); err == nil || !strings.Contains(err.Error(), "32 bytes") {
+		t.Fatalf("Load with a short key: %v", err)
+	}
+
+	env["POSTIK_ENCRYPTION_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+	cfg, err := Load(envFrom(env))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.EncryptionKey) != 32 || cfg.LinkedIn.Version != "202609" || cfg.LinkedIn.AuthURL != "https://www.linkedin.com" || cfg.LinkedIn.APIURL != "https://api.linkedin.com" {
+		t.Fatalf("config = %+v, linkedin %+v", cfg, cfg.LinkedIn)
+	}
+}

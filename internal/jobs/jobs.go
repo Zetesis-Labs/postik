@@ -16,9 +16,11 @@ import (
 
 	"github.com/zetesis-labs/postik/internal/core/publish"
 	"github.com/zetesis-labs/postik/internal/database/migrations"
+	"github.com/zetesis-labs/postik/internal/linkedin"
 	"github.com/zetesis-labs/postik/internal/postgres"
 	"github.com/zetesis-labs/postik/internal/storage"
 	"github.com/zetesis-labs/postik/internal/telegram"
+	"github.com/zetesis-labs/postik/internal/tokens"
 )
 
 // PublishAttempts is how many times River tries a publish_value job.
@@ -58,6 +60,9 @@ type Deps struct {
 	DB       *bun.DB
 	Store    *postgres.Publications
 	Telegram *telegram.Client
+	LinkedIn *linkedin.Client
+	Tokens   *tokens.Keeper
+	Channels *postgres.Channels
 	Files    storage.Files
 	Notifier Notifier
 	Digester Digester
@@ -70,6 +75,7 @@ type Jobs struct {
 	PublishValue   *PublishValueWorker
 	SweepScheduled *SweepWorker
 	SuccessDigest  *DigestWorker
+	TokenExpiry    *ExpiryWorker
 }
 
 func New(d Deps) (*Jobs, error) {
@@ -77,13 +83,15 @@ func New(d Deps) (*Jobs, error) {
 		d.Notifier = nopNotifier{}
 	}
 	j := &Jobs{}
-	j.PublishValue = &PublishValueWorker{deps: d, jobs: j}
+	j.PublishValue = &PublishValueWorker{deps: d, jobs: j, publishers: publishers(d)}
 	j.SweepScheduled = &SweepWorker{deps: d, jobs: j}
 	j.SuccessDigest = &DigestWorker{deps: d}
+	j.TokenExpiry = &ExpiryWorker{deps: d}
 	workers := river.NewWorkers()
 	river.AddWorker(workers, j.PublishValue)
 	river.AddWorker(workers, j.SweepScheduled)
 	river.AddWorker(workers, j.SuccessDigest)
+	river.AddWorker(workers, j.TokenExpiry)
 
 	client, err := river.NewClient(riverdatabasesql.New(d.DB.DB), &river.Config{
 		Schema:               migrations.RiverSchema,
@@ -100,6 +108,9 @@ func New(d Deps) (*Jobs, error) {
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour), func() (river.JobArgs, *river.InsertOpts) {
 				return SuccessDigestArgs{}, nil
 			}, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour), func() (river.JobArgs, *river.InsertOpts) {
+				return TokenExpiryArgs{}, nil
+			}, &river.PeriodicJobOpts{RunOnStart: true}),
 		},
 	})
 	if err != nil {
@@ -107,6 +118,19 @@ func New(d Deps) (*Jobs, error) {
 	}
 	j.client = client
 	return j, nil
+}
+
+// publishers are the networks postik can publish to.
+func publishers(d Deps) map[string]Publisher {
+	out := map[string]Publisher{
+		"telegram": &telegramPublisher{client: d.Telegram, files: d.Files, logger: d.Logger},
+	}
+	if d.LinkedIn != nil {
+		li := &linkedInPublisher{client: d.LinkedIn, tokens: d.Tokens, files: d.Files}
+		out["linkedin"] = li
+		out["linkedin-page"] = li
+	}
+	return out
 }
 
 // Start runs the workers until Stop.
