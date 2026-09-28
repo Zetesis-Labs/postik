@@ -77,5 +77,5 @@ Cada una se cierra antes de empezar el vertical que la necesita:
 | P2 | Dominio: ¿reutilizamos `suntzu.nexolabs.dev` o ponemos uno nuevo? | S10 |
 | P3 | Correo: ¿Resend, como suntzu, o SMTP genérico? | S05 |
 | P4 | OIDC en desarrollo: ¿el realm de desarrollo de Zetesis-Auth o un emisor local en el devcontainer? | S02 |
-| P5 | ¿Desplegamos en pelayo al cerrar S02, junto a suntzu, para probar en real desde el principio? Un push a main de Mileto despliega. De esto depende dónde se prueban S06 y S07 contra las redes reales: hace falta un entorno accesible desde internet, porque las redes vuelven a una URL registrada e Instagram descarga los medios desde una URL pública. | S02 |
-| P6 | Registro de la imagen: ¿ghcr.io, porque el repo es público, o Harbor? | Primer despliegue (P5) |
+| P5 | **Decidida el 2026-09-28: sí.** postik se despliega en pelayo junto a suntzu (namespace `postik`, `postik.nexolabs.dev` detrás de colon). Ese dominio resuelve a la LAN (`10.0.0.7`): vale para S01–S05 y para los retornos OAuth de S06/S07, que pasan por el navegador, pero no para que Instagram descargue medios; eso se resuelve al llegar a S06. Comparte el bot de Telegram con suntzu, que está apagada. | S02 |
+| P6 | **Decidida el 2026-09-28: ghcr.io** (`ghcr.io/zetesis-labs/postik`, etiquetas `sha-<commit>` y `main`), publicada por la CI al mergear a `main`. | Primer despliegue (P5) |
