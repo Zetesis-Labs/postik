@@ -36,7 +36,7 @@ Cada spec técnica confirma o cambia la parte que introduce.
 | Servidor | Go 1.26 | Como Sebastián. |
 | API | Se escribe primero la OpenAPI (`api/openapi.yaml`). El servidor se genera con `oapi-codegen` en modo strict y el frontend saca sus tipos con `openapi-typescript` | Como Sebastián. |
 | Base de datos | Postgres con `pgx` y `bun`. Esquema declarado en `db/schema.sql` y migraciones con Atlas | Como Sebastián. |
-| Frontend | SPA con Vite, React, TanStack Router y TanStack Query, embebida en el binario con `embed.FS` | **Distinto de Sebastián**, que usa TanStack Start con Nitro y por eso ejecuta Node dentro del pod. Aquí la SPA es estática, como pide la constitución (§7). |
+| Frontend | La interfaz de Postiz portada (constitución §2) a una SPA con Vite, React, TanStack Router y TanStack Query, embebida en el binario con `embed.FS`. Tailwind 3.4, la misma versión que Postiz, para que las clases se vean igual | **Distinto de Sebastián**, que usa TanStack Start con Nitro y por eso ejecuta Node dentro del pod. Aquí la SPA es estática, como pide la constitución (§7). |
 | Cola de trabajos (S05) | River, sobre el mismo Postgres y en su propio esquema `river`. Lo migra `rivermigrate` dentro de `postik migrate`; Atlas solo gestiona `public` | Si River estorba, la alternativa es una tabla propia con `FOR UPDATE SKIP LOCKED`. |
 | OIDC (S02) | `coreos/go-oidc` y `golang.org/x/oauth2` | |
 | MCP (S08) | SDK oficial `modelcontextprotocol/go-sdk`: HTTP streamable, `auth.RequireBearerToken` y metadatos del recurso protegido | Mismo diseño que la rama `feat/mcp-keycloak-oauth` de ZetesisPortal (F16). |
