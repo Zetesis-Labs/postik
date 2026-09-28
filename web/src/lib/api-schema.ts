@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/active-organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setActiveOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -79,6 +95,14 @@ export interface components {
         Instance: {
             superadminTotp: boolean;
             languages: string[];
+            oidc?: components["schemas"]["OidcProvider"];
+        };
+        OidcProvider: {
+            name: string;
+        };
+        ActiveOrganization: {
+            /** Format: uuid */
+            organizationId: string;
         };
         SuperadminLogin: {
             username: string;
@@ -88,6 +112,23 @@ export interface components {
         Me: {
             /** @enum {string} */
             kind: "superadmin" | "member";
+            user?: components["schemas"]["MeUser"];
+            organizations?: components["schemas"]["MeOrganization"][];
+            /** Format: uuid */
+            activeOrganizationId?: string;
+        };
+        MeUser: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+        };
+        MeOrganization: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            role: "USER" | "ADMIN" | "OWNER";
         };
     };
     responses: {
@@ -171,6 +212,31 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    setActiveOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveOrganization"];
+            };
+        };
+        responses: {
+            /** @description Active organization changed */
+            204: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     getMe: {

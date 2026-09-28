@@ -11,10 +11,19 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	PublicURL   *url.URL
-	ListenAddr  string
-	Superadmin  access.Superadmin
+	DatabaseURL       string
+	PublicURL         *url.URL
+	ListenAddr        string
+	Superadmin        access.Superadmin
+	OIDC              *OIDC
+	RequireInvitation bool
+}
+
+type OIDC struct {
+	Issuer       string
+	ClientID     string
+	ClientSecret string
+	DisplayName  string
 }
 
 func (c Config) SecureCookies() bool {
@@ -71,10 +80,57 @@ func Load(getenv func(string) string) (Config, error) {
 		problems = append(problems, errors.New("POSTIK_SUPERADMIN_RECOVERY_CODES needs POSTIK_SUPERADMIN_TOTP_SECRET"))
 	}
 
+	oidc, oidcProblems := loadOIDC(value)
+	cfg.OIDC = oidc
+	problems = append(problems, oidcProblems...)
+
+	switch strings.ToLower(value("POSTIK_REQUIRE_INVITATION")) {
+	case "", "false", "0", "no":
+	case "true", "1", "yes":
+		cfg.RequireInvitation = true
+	default:
+		problems = append(problems, errors.New("POSTIK_REQUIRE_INVITATION must be true or false"))
+	}
+
 	if len(problems) > 0 {
 		return Config{}, errors.Join(problems...)
 	}
 	return cfg, nil
+}
+
+// loadOIDC returns nil when no provider is configured. The issuer, client ID
+// and client secret go together.
+func loadOIDC(value func(string) string) (*OIDC, []error) {
+	oidc := &OIDC{
+		Issuer:       strings.TrimRight(value("POSTIK_OIDC_ISSUER"), "/"),
+		ClientID:     value("POSTIK_OIDC_CLIENT_ID"),
+		ClientSecret: value("POSTIK_OIDC_CLIENT_SECRET"),
+		DisplayName:  value("POSTIK_OIDC_DISPLAY_NAME"),
+	}
+	required := map[string]string{
+		"POSTIK_OIDC_ISSUER":        oidc.Issuer,
+		"POSTIK_OIDC_CLIENT_ID":     oidc.ClientID,
+		"POSTIK_OIDC_CLIENT_SECRET": oidc.ClientSecret,
+	}
+	var missing []error
+	set := 0
+	for _, key := range []string{"POSTIK_OIDC_ISSUER", "POSTIK_OIDC_CLIENT_ID", "POSTIK_OIDC_CLIENT_SECRET"} {
+		if required[key] == "" {
+			missing = append(missing, fmt.Errorf("%s is required when OIDC is configured", key))
+		} else {
+			set++
+		}
+	}
+	if set == 0 {
+		return nil, nil
+	}
+	if len(missing) > 0 {
+		return nil, missing
+	}
+	if oidc.DisplayName == "" {
+		oidc.DisplayName = "OIDC"
+	}
+	return oidc, nil
 }
 
 func parsePublicURL(raw string) (*url.URL, error) {

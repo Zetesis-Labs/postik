@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for MeKind.
@@ -31,6 +33,32 @@ func (e MeKind) Valid() bool {
 	}
 }
 
+// Defines values for MeOrganizationRole.
+const (
+	ADMIN MeOrganizationRole = "ADMIN"
+	OWNER MeOrganizationRole = "OWNER"
+	USER  MeOrganizationRole = "USER"
+)
+
+// Valid indicates whether the value is a known member of the MeOrganizationRole enum.
+func (e MeOrganizationRole) Valid() bool {
+	switch e {
+	case ADMIN:
+		return true
+	case OWNER:
+		return true
+	case USER:
+		return true
+	default:
+		return false
+	}
+}
+
+// ActiveOrganization defines model for ActiveOrganization.
+type ActiveOrganization struct {
+	OrganizationId openapi_types.UUID `json:"organizationId"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    string `json:"code"`
@@ -39,17 +67,43 @@ type Error struct {
 
 // Instance defines model for Instance.
 type Instance struct {
-	Languages      []string `json:"languages"`
-	SuperadminTotp bool     `json:"superadminTotp"`
+	Languages      []string      `json:"languages"`
+	Oidc           *OidcProvider `json:"oidc,omitempty"`
+	SuperadminTotp bool          `json:"superadminTotp"`
 }
 
 // Me defines model for Me.
 type Me struct {
-	Kind MeKind `json:"kind"`
+	ActiveOrganizationId *openapi_types.UUID `json:"activeOrganizationId,omitempty"`
+	Kind                 MeKind              `json:"kind"`
+	Organizations        *[]MeOrganization   `json:"organizations,omitempty"`
+	User                 *MeUser             `json:"user,omitempty"`
 }
 
 // MeKind defines model for Me.Kind.
 type MeKind string
+
+// MeOrganization defines model for MeOrganization.
+type MeOrganization struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+	Role MeOrganizationRole `json:"role"`
+}
+
+// MeOrganizationRole defines model for MeOrganization.Role.
+type MeOrganizationRole string
+
+// MeUser defines model for MeUser.
+type MeUser struct {
+	Email string             `json:"email"`
+	Id    openapi_types.UUID `json:"id"`
+	Name  string             `json:"name"`
+}
+
+// OidcProvider defines model for OidcProvider.
+type OidcProvider struct {
+	Name string `json:"name"`
+}
 
 // SuperadminLogin defines model for SuperadminLogin.
 type SuperadminLogin struct {
@@ -60,6 +114,9 @@ type SuperadminLogin struct {
 
 // LoginSuperadminJSONRequestBody defines body for LoginSuperadmin for application/json ContentType.
 type LoginSuperadminJSONRequestBody = SuperadminLogin
+
+// SetActiveOrganizationJSONRequestBody defines body for SetActiveOrganization for application/json ContentType.
+type SetActiveOrganizationJSONRequestBody = ActiveOrganization
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -75,6 +132,9 @@ type ServerInterface interface {
 
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+
+	// (POST /me/active-organization)
+	SetActiveOrganization(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -133,6 +193,20 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetActiveOrganization operation middleware
+func (siw *ServerInterfaceWrapper) SetActiveOrganization(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetActiveOrganization(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -265,6 +339,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instance", wrapper.GetInstance)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/superadmin", wrapper.LoginSuperadmin)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/logout", wrapper.Logout)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/active-organization", wrapper.SetActiveOrganization)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
 	return m
@@ -397,6 +472,58 @@ func (response GetMe401JSONResponse) VisitGetMeResponse(w http.ResponseWriter) e
 	return err
 }
 
+type SetActiveOrganizationRequestObject struct {
+	Body *SetActiveOrganizationJSONRequestBody
+}
+
+type SetActiveOrganizationResponseObject interface {
+	VisitSetActiveOrganizationResponse(w http.ResponseWriter) error
+}
+
+type SetActiveOrganization204ResponseHeaders struct {
+	SetCookie *string
+}
+
+type SetActiveOrganization204Response struct {
+	Headers SetActiveOrganization204ResponseHeaders
+}
+
+func (response SetActiveOrganization204Response) VisitSetActiveOrganizationResponse(w http.ResponseWriter) error {
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetActiveOrganization401JSONResponse struct{ ErrorJSONResponse }
+
+func (response SetActiveOrganization401JSONResponse) VisitSetActiveOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetActiveOrganization404JSONResponse Error
+
+func (response SetActiveOrganization404JSONResponse) VisitSetActiveOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -411,6 +538,9 @@ type StrictServerInterface interface {
 
 	// (GET /me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+
+	// (POST /me/active-organization)
+	SetActiveOrganization(ctx context.Context, request SetActiveOrganizationRequestObject) (SetActiveOrganizationResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -548,6 +678,37 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetActiveOrganization operation middleware
+func (sh *strictHandler) SetActiveOrganization(w http.ResponseWriter, r *http.Request) {
+	var request SetActiveOrganizationRequestObject
+
+	var body SetActiveOrganizationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetActiveOrganization(ctx, request.(SetActiveOrganizationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetActiveOrganization")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetActiveOrganizationResponseObject); ok {
+		if err := validResponse.VisitSetActiveOrganizationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

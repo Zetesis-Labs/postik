@@ -15,12 +15,18 @@ import (
 	"github.com/zetesis-labs/postik/internal/postgres"
 )
 
-const CookieName = "postik_session"
+const (
+	CookieName             = "postik_session"
+	OrganizationCookieName = "postik_org"
+)
 
 type Principal struct {
-	Kind        access.SessionKind
-	UserID      *uuid.UUID
-	sessionHash []byte
+	Kind   access.SessionKind
+	UserID *uuid.UUID
+	// RememberedOrganization is the organization the browser asked for; it
+	// still has to be checked against the memberships.
+	RememberedOrganization *uuid.UUID
+	sessionHash            []byte
 }
 
 type principalKey struct{}
@@ -123,5 +129,36 @@ func (s *Sessions) resolve(r *http.Request) (Principal, bool) {
 			s.Logger.ErrorContext(r.Context(), "touch session", "error", err)
 		}
 	}
-	return Principal{Kind: session.Kind, UserID: session.UserID, sessionHash: idHash}, true
+	return Principal{
+		Kind:                   session.Kind,
+		UserID:                 session.UserID,
+		RememberedOrganization: rememberedOrganization(r),
+		sessionHash:            idHash,
+	}, true
+}
+
+func rememberedOrganization(r *http.Request) *uuid.UUID {
+	cookie, err := r.Cookie(OrganizationCookieName)
+	if err != nil {
+		return nil
+	}
+	id, err := uuid.Parse(cookie.Value)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
+// OrganizationCookie remembers the active organization in the browser.
+func (s *Sessions) OrganizationCookie(id uuid.UUID) string {
+	cookie := &http.Cookie{
+		Name:     OrganizationCookieName,
+		Value:    id.String(),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   s.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int((365 * 24 * time.Hour).Seconds()),
+	}
+	return cookie.String()
 }

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 
 export const superadmin = {
@@ -26,4 +27,19 @@ export function totp(secret: string, now = Date.now()): string {
   const offset = digest[digest.length - 1] & 0x0f;
   const value = (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
   return value.toString().padStart(6, '0');
+}
+
+// psql runs a statement against the throwaway database that e2e/serve.sh creates.
+export function psql(sql: string): string {
+  const admin = process.env.TEST_DATABASE_URL;
+  if (!admin) {
+    throw new Error('TEST_DATABASE_URL is required');
+  }
+  const url = new URL(admin);
+  url.pathname = '/postik_e2e';
+  return execFileSync('psql', [url.toString(), '-tA', '-v', 'ON_ERROR_STOP=1', '-c', sql], { encoding: 'utf8' }).trim();
+}
+
+export function uniqueSubject(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
