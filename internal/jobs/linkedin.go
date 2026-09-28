@@ -26,6 +26,17 @@ type linkedInValue struct {
 	media []string
 }
 
+// errNoPostID stops the comments of a post LinkedIn published without
+// answering its ID: there is nothing to comment on.
+var errNoPostID = errors.New("LinkedIn did not answer the ID of the post, so its comments cannot be published")
+
+// renewalError is a renewal after a 401 that failed for a reason other than
+// the refresh token: LinkedIn published nothing, so it can be tried again.
+type renewalError struct{ err error }
+
+func (e *renewalError) Error() string { return "renew the token: " + e.err.Error() }
+func (e *renewalError) Unwrap() error { return e.err }
+
 // ReplyTo: comments on LinkedIn do not nest, they all answer the post.
 func (p *linkedInPublisher) ReplyTo(int) int { return 0 }
 
@@ -72,10 +83,13 @@ func (p *linkedInPublisher) Create(ctx context.Context, post *postgres.Post, ind
 			urn, err = p.client.CreatePost(ctx, token, linkedin.Post{Author: actor, Commentary: commentary, Content: linkedin.Content{Media: value.media}})
 			return err
 		})
-		return Sent{ID: urn, URL: publish.LinkedInURL(urn)}, err
+		if err != nil || urn == "" {
+			return Sent{}, err
+		}
+		return Sent{ID: urn, URL: publish.LinkedInURL(urn)}, nil
 	}
 	if replyTo == nil || replyTo.ExternalID == nil {
-		return Sent{}, errors.New("the post to comment on was not published")
+		return Sent{}, errNoPostID
 	}
 	root := *replyTo.ExternalID
 	var id string
@@ -96,7 +110,7 @@ func (p *linkedInPublisher) withRenewal(ctx context.Context, channel *postgres.C
 	}
 	renewed, err := p.tokens.Renew(ctx, *channel, *token)
 	if err != nil {
-		return err
+		return &renewalError{err: err}
 	}
 	*token = renewed.Access
 	err = call(*token)
@@ -107,9 +121,16 @@ func (p *linkedInPublisher) withRenewal(ctx context.Context, channel *postgres.C
 }
 
 func (p *linkedInPublisher) Classify(err error) (publish.Failure, string) {
+	if errors.Is(err, errNoPostID) {
+		return publish.Rejected, err.Error()
+	}
 	var notSent *linkedin.NotSentError
 	if errors.As(err, &notSent) {
 		return publish.NotStarted, publish.CodeUnreachable
+	}
+	var renewal *renewalError
+	if errors.As(err, &renewal) {
+		return publish.Interrupted, renewal.Error()
 	}
 	var apiErr *linkedin.APIError
 	if errors.As(err, &apiErr) {

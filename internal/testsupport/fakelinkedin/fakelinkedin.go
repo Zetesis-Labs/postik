@@ -112,6 +112,7 @@ type Server struct {
 	posts         []Post
 	comments      []Comment
 	failures      []failure
+	omitID        bool
 	counter       int
 }
 
@@ -180,6 +181,14 @@ func (s *Server) DropNext(prefix string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.failures = append(s.failures, failure{path: prefix, drop: true})
+}
+
+// OmitIDNext makes the next post answer 201 without its ID, as if LinkedIn
+// published and left the x-restli-id header out.
+func (s *Server) OmitIDNext() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.omitID = true
 }
 
 func (s *Server) Posts() []Post {
@@ -324,6 +333,9 @@ func (s *Server) redirect(w http.ResponseWriter, r *http.Request, params map[str
 }
 
 func (s *Server) token(w http.ResponseWriter, r *http.Request) {
+	if s.fail(w, r) {
+		return
+	}
 	if err := r.ParseForm(); err != nil || r.PostForm.Get("client_id") != ClientID || r.PostForm.Get("client_secret") != ClientSecret {
 		oauthError(w, "invalid_client", "Client authentication failed")
 		return
@@ -635,8 +647,12 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request, m *Member, t
 	s.counter++
 	post.URN = fmt.Sprintf("urn:li:share:%d", 7_000_000_000+s.counter)
 	s.posts = append(s.posts, post)
+	omit := s.omitID
+	s.omitID = false
 	s.mu.Unlock()
-	w.Header().Set("x-restli-id", post.URN)
+	if !omit {
+		w.Header().Set("x-restli-id", post.URN)
+	}
 	w.WriteHeader(http.StatusCreated)
 }
 

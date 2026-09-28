@@ -74,8 +74,17 @@ func (s *Publications) ForgetSending(ctx context.Context, postID uuid.UUID, publ
 	return err
 }
 
+// MarkSent records a value the network published. A network that published
+// without answering an ID leaves both empty (F14).
 func (s *Publications) MarkSent(ctx context.Context, postID uuid.UUID, publishAt time.Time, index int, externalID, url string, now time.Time) error {
-	return s.settle(ctx, Delivery{PostID: postID, PublishAt: publishAt, ValueIndex: index, State: "sent", ExternalID: &externalID, URL: &url, CreatedAt: now, UpdatedAt: now})
+	return s.settle(ctx, Delivery{PostID: postID, PublishAt: publishAt, ValueIndex: index, State: "sent", ExternalID: nonEmpty(externalID), URL: nonEmpty(url), CreatedAt: now, UpdatedAt: now})
+}
+
+func nonEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func (s *Publications) MarkFailed(ctx context.Context, postID uuid.UUID, publishAt time.Time, index int, reason string, now time.Time) error {
@@ -91,10 +100,10 @@ func (s *Publications) settle(ctx context.Context, d Delivery) error {
 }
 
 // PublishPost marks a post published with its link, if it is still the
-// scheduled post of that date.
+// scheduled post of that date. Without a link it waits for F14.
 func (s *Publications) PublishPost(ctx context.Context, postID uuid.UUID, publishAt time.Time, url string, now time.Time) error {
 	_, err := s.db.NewUpdate().Model((*Post)(nil)).
-		Set("status = 'published', release_url = ?, error = NULL, updated_at = ?", url, now).
+		Set("status = 'published', release_url = ?, error = NULL, updated_at = ?", nonEmpty(url), now).
 		Where("id = ? AND publish_at = ? AND status = 'scheduled'", postID, publishAt).Exec(ctx)
 	return err
 }

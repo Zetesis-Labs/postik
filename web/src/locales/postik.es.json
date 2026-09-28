@@ -96,5 +96,6 @@
   "post_problem_too_many_media": "Hay más medios de los que admite la red",
   "post_problem_comment_media": "Los comentarios de esta red no admiten medios",
   "notification_refresh_failed": "No se ha podido renovar tu canal {{channel}} de {{provider}}. Vuelve a conectarlo",
-  "notification_channel_expiring": "Tu canal {{channel}} de {{provider}} caduca en {{days}} días. Vuelve a conectarlo antes para que sus posts no fallen"
+  "notification_channel_expiring": "Tu canal {{channel}} de {{provider}} caduca en {{days}} días. Vuelve a conectarlo antes para que sus posts no fallen",
+  "try_again": "Reintentar"
 }

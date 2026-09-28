@@ -21,7 +21,7 @@ export const ContinuePage: FC<{ channelId: string; onDone: () => void }> = ({ ch
   const queryClient = useQueryClient();
   const [selection, setSelection] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['channel-pages', channelId],
     queryFn: async () => {
       const { data, response } = await api.GET('/channels/{id}/pages', { params: { path: { id: channelId } } });
@@ -38,21 +38,34 @@ export const ContinuePage: FC<{ channelId: string; onDone: () => void }> = ({ ch
       return;
     }
     setSaving(true);
-    const { response } = await api.PUT('/channels/{id}/page', { params: { path: { id: channelId } }, body: { pageId: selection } });
-    setSaving(false);
-    if (!response.ok) {
-      toaster.show(t('page_not_saved', 'The page could not be saved'), 'warning');
-      return;
+    try {
+      const { response } = await api.PUT('/channels/{id}/page', { params: { path: { id: channelId } }, body: { pageId: selection } });
+      if (!response.ok) {
+        toaster.show(t('page_not_saved', 'The page could not be saved'), 'warning');
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: channelsQuery.queryKey });
+      toaster.show(t('channel_added', 'Channel added'), 'success');
+      onDone();
+    } catch {
+      toaster.show(t('network_unreachable', 'The network could not be reached'), 'warning');
+    } finally {
+      setSaving(false);
     }
-    await queryClient.invalidateQueries({ queryKey: channelsQuery.queryKey });
-    toaster.show(t('channel_added', 'Channel added'), 'success');
-    onDone();
   }, [channelId, onDone, queryClient, selection, t, toaster]);
 
   if (isLoading) {
     return <div className="h-[300px]" />;
   }
-  if (isError || !data?.length) {
+  if (isError) {
+    return (
+      <div className="text-center flex flex-col justify-center items-center gap-[20px] text-[18px] leading-[26px] h-[300px]">
+        <span>{t('network_unreachable', 'The network could not be reached')}</span>
+        <Button onClick={() => void refetch()}>{t('try_again', 'Try again')}</Button>
+      </div>
+    );
+  }
+  if (!data?.length) {
     return (
       <div className="text-center flex flex-col justify-center items-center text-[18px] leading-[26px] h-[300px]">
         {emptyStateMessages.map((msg, index) => (

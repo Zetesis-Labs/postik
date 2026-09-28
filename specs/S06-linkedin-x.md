@@ -64,7 +64,7 @@ Fuera de S06:
    - **Perfil de LinkedIn y X:** se crea el canal o, si esa cuenta ya estaba en la organización, se actualiza como en Telegram (§6.3, unicidad): nombre, foto y tokens nuevos, y se conservan el cliente, las franjas y si está desactivado. Al conectar o reconectar, el canal deja de necesitar reconexión.
    - **LinkedIn Page:** se crea un canal en paso intermedio, con `external_id` `pending:<sub>` y los tokens de la persona, que no se puede usar hasta elegir la página (paso 5). Si esa persona ya tenía uno a medias en la organización, se reutiliza.
 5. **Elegir la página (F5, paso 5):**
-   - `GET /api/v1/channels/{id}/pages` lista las páginas en las que la persona es `ADMINISTRATOR` o `CONTENT_ADMINISTRATOR`, con la aprobación vigente: `GET /rest/organizationAcls?q=roleAssignee&state=APPROVED`, y el nombre y el logo de cada una con `GET /rest/organizations/{id}`.
+   - `GET /api/v1/channels/{id}/pages` lista las páginas en las que la persona es `ADMINISTRATOR` o `CONTENT_ADMINISTRATOR`, con la aprobación vigente: `GET /rest/organizationAcls?q=roleAssignee&state=APPROVED`, y el nombre y el logo de cada una con `GET /v2/organizations/{id}` y la proyección del logo, como Postiz. Las llamadas a `/v2` llevan solo el token; las cabeceras de versión son de `/rest`.
    - `PUT /api/v1/channels/{id}/page` con `pageId` comprueba que la página está en esa lista (si no, 403 `page_not_administered`) y deja el canal con el ID de la organización, su nombre, su `vanityName` como usuario y el logo guardado en `avatars/`. El canal sale del paso intermedio.
    - Si la organización ya tenía esa página en otro canal, ese canal recibe los tokens nuevos y deja de necesitar reconexión, el canal intermedio se borra y se responde con el canal existente. Es la unicidad de §6.3.
 6. **Reconexión (F7):**
@@ -129,7 +129,7 @@ Vale todo S05 §4: el turno, el canal, los envíos apuntados en `post_deliveries
   | Carrusel (C) | Las imágenes se unen en un PDF, una por página y del tamaño de la mayor, y se sube con `POST /rest/documents?action=initializeUpload` | `content.media.id` y `content.media.title` con el nombre del carrusel |
 
 - **Post:** `POST /rest/posts` con `visibility: PUBLIC`, `distribution.feedDistribution: MAIN_FEED` y `lifecycleState: PUBLISHED`. El ID llega en la cabecera `x-restli-id`.
-- **Enlace:** `https://www.linkedin.com/feed/update/<urn>/`.
+- **Enlace:** `https://www.linkedin.com/feed/update/<urn>/`. Si LinkedIn responde 201 sin `x-restli-id`, el post queda Publicado sin enlace (F14) y sus comentarios no se envían, porque no hay a qué responder.
 - **Comentarios:** `POST /rest/socialActions/<urn del principal>/comments`, con `actor` (el autor) y `message.text`. Solo texto (§6.4).
 - **Errores:**
 
@@ -409,12 +409,14 @@ Cubre: F11, paso 4; F12, bajo demanda; §4.
 
 - **Dado** un canal de LinkedIn con refresh token:
   - uno con el access token caducado;
-  - otro con el access token vigente, pero con LinkedIn preparado para responder 401 una vez.
+  - otro con el access token vigente, pero con LinkedIn preparado para responder 401 una vez;
+  - un tercero igual que el segundo, y con la renovación preparada para responder 503 una vez.
 - **Cuando** se publica un post en cada uno.
 - **Entonces**:
   - el primero renueva antes de publicar;
   - el segundo renueva tras el 401 y repite la llamada;
-  - los dos quedan Publicados, con un solo post cada uno, y los tokens nuevos guardados.
+  - el tercero no publica en el primer intento, queda Programado y sin envío apuntado, y sale en el segundo;
+  - los tres quedan Publicados, con un solo post cada uno, y los dos primeros tienen guardados los tokens nuevos.
 
 ## S06.15 Si no se puede renovar, el canal pide reconexión y se avisa a todos
 
@@ -493,23 +495,34 @@ Cubre: F9, «Publicar ya»; F11; §11.
   - el LinkedIn falso recibe el post;
   - la vista previa de la tarjeta lleva a `https://www.linkedin.com/feed/update/…`.
 
+## S06.22 Si LinkedIn publica sin devolver el ID, el post queda Publicado sin enlace
+
+Cubre: F11, otros casos; F14.
+
+- **Dado** un post con el principal y un comentario, y LinkedIn preparado para aceptar el principal sin devolver su ID.
+- **Cuando** se publican el principal y el comentario.
+- **Entonces**:
+  - el post queda Publicado, sin enlace, a la espera de vincularlo a mano (F14);
+  - el comentario no se envía y queda como `failed`, con el motivo;
+  - se avisa del fallo del comentario.
+
 ### B · X (casos que se detallan en su PR)
 
-- **S06.22** Conectar X por OAuth 1.0a: *request token*, vuelta con *verifier*, identidad, «Verificada» inicial y firma válida en cada llamada.
-- **S06.23** Un post sale en X como texto plano, con enlace `x.com/<usuario>/status/<id>`, y su hilo encadena cada elemento al anterior.
-- **S06.24** Medios de X: hasta 4 imágenes, o un vídeo esperando su procesado; `media_ids` en el post.
-- **S06.25** Ajustes de X en el post: `reply_settings` (no se envía con `everyone`), comunidad, `made_with_ai` y `paid_partnership`.
-- **S06.26** Con `POSTIK_X_STRIP_LINKS`, las URLs no llegan a X.
-- **S06.27** Recuento de X: URL = 23 y emoji = 2; 280, o 4.000 con «Verificada»; el servidor rechaza `too_long`.
-- **S06.28** Errores de X: el contenido duplicado queda en Error sin reintento, un 429 se reintenta y un 401 deja el canal pendiente de reconexión.
-- **S06.29** (pantalla) Conectar X y publicar un hilo con «Publicar ya».
-- **S06.30** (pantalla) «Ajustes adicionales» > «Verificada» sube el contador del editor a 4.000.
-- **S06.31** (pantalla) El editor pide «quién puede responder» antes de guardar en X.
+- **S06.23** Conectar X por OAuth 1.0a: *request token*, vuelta con *verifier*, identidad, «Verificada» inicial y firma válida en cada llamada.
+- **S06.24** Un post sale en X como texto plano, con enlace `x.com/<usuario>/status/<id>`, y su hilo encadena cada elemento al anterior.
+- **S06.25** Medios de X: hasta 4 imágenes, o un vídeo esperando su procesado; `media_ids` en el post.
+- **S06.26** Ajustes de X en el post: `reply_settings` (no se envía con `everyone`), comunidad, `made_with_ai` y `paid_partnership`.
+- **S06.27** Con `POSTIK_X_STRIP_LINKS`, las URLs no llegan a X.
+- **S06.28** Recuento de X: URL = 23 y emoji = 2; 280, o 4.000 con «Verificada»; el servidor rechaza `too_long`.
+- **S06.29** Errores de X: el contenido duplicado queda en Error sin reintento, un 429 se reintenta y un 401 deja el canal pendiente de reconexión.
+- **S06.30** (pantalla) Conectar X y publicar un hilo con «Publicar ya».
+- **S06.31** (pantalla) «Ajustes adicionales» > «Verificada» sube el contador del editor a 4.000.
+- **S06.32** (pantalla) El editor pide «quién puede responder» antes de guardar en X.
 
 ### C · Carrusel de LinkedIn y artículos de X (casos que se detallan en su PR)
 
-- **S06.32** Carrusel de LinkedIn: las imágenes salen en un PDF subido como documento, con su nombre; menos de 2 imágenes o un vídeo dan `carousel_media`.
-- **S06.33** Artículos de X: borrador y publicación, con título y estado obligatorios; solo imágenes; sin comentarios en borrador.
+- **S06.33** Carrusel de LinkedIn: las imágenes salen en un PDF subido como documento, con su nombre; menos de 2 imágenes o un vídeo dan `carousel_media`.
+- **S06.34** Artículos de X: borrador y publicación, con título y estado obligatorios; solo imágenes; sin comentarios en borrador.
 
 ## 14. Preguntas abiertas
 
