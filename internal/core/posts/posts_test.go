@@ -40,7 +40,7 @@ func TestValidate(t *testing.T) {
 		t.Fatalf("within the minute of margin: %+v", p)
 	}
 	withMedia := ok
-	withMedia.Values = []Value{{Content: "", MediaCount: 1}}
+	withMedia.Values = []Value{{Content: "", Media: []string{"image"}}}
 	if p := Validate(Submission{CheckDate: true, PublishAt: now.Add(time.Hour), Channels: []ChannelSubmission{withMedia}}, now); len(p) != 0 {
 		t.Fatalf("an image alone is content: %+v", p)
 	}
@@ -102,5 +102,37 @@ func TestPublishAtKeepsMinutes(t *testing.T) {
 	requested := time.Date(2026, 10, 1, 9, 30, 45, 0, time.UTC)
 	if got := PublishAt(TypeSchedule, requested, now); !got.Equal(time.Date(2026, 10, 1, 9, 30, 0, 0, time.UTC)) {
 		t.Fatalf("schedule = %s", got)
+	}
+}
+
+func TestLinkedInMediaRules(t *testing.T) {
+	images := func(n int) []string {
+		kinds := make([]string, n)
+		for i := range kinds {
+			kinds[i] = "image"
+		}
+		return kinds
+	}
+	cases := []struct {
+		index int
+		media []string
+		want  string
+	}{
+		{0, images(20), ""},
+		{0, images(21), CodeTooManyMedia},
+		{0, []string{"video"}, ""},
+		{0, []string{"video", "image"}, CodeVideoAlone},
+		{1, images(1), CodeCommentMedia},
+		{1, nil, ""},
+	}
+	for _, c := range cases {
+		for _, provider := range []string{"linkedin", "linkedin-page"} {
+			if got := mediaProblem(provider, c.index, c.media); got != c.want {
+				t.Errorf("%s value %d with %v = %q, want %q", provider, c.index, c.media, got, c.want)
+			}
+		}
+		if got := mediaProblem("telegram", c.index, c.media); got != "" {
+			t.Errorf("telegram value %d with %v = %q", c.index, c.media, got)
+		}
 	}
 }

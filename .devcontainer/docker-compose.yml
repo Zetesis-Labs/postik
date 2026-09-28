@@ -33,6 +33,11 @@ services:
       POSTIK_RESEND_API_KEY: ${POSTIK_RESEND_API_KEY:-re_fake}
       POSTIK_RESEND_API_URL: ${POSTIK_RESEND_API_URL:-http://localhost:5556/resend}
       POSTIK_EMAIL_FROM: ${POSTIK_EMAIL_FROM:-postik <postik@example.com>}
+      POSTIK_ENCRYPTION_KEY: ${POSTIK_ENCRYPTION_KEY:-ZGV2LW9ubHktZW5jcnlwdGlvbi1rZXktMzItYnl0ZXM=}
+      POSTIK_LINKEDIN_CLIENT_ID: ${POSTIK_LINKEDIN_CLIENT_ID:-fake-linkedin-client}
+      POSTIK_LINKEDIN_CLIENT_SECRET: ${POSTIK_LINKEDIN_CLIENT_SECRET:-fake-linkedin-secret}
+      POSTIK_LINKEDIN_AUTH_URL: ${POSTIK_LINKEDIN_AUTH_URL:-http://localhost:5556/linkedin}
+      POSTIK_LINKEDIN_API_URL: ${POSTIK_LINKEDIN_API_URL:-http://localhost:5556/linkedin}
     ports:
       - "8484:8080"
       - "5184:5173"

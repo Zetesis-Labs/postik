@@ -119,6 +119,8 @@ func TestAfterFailure(t *testing.T) {
 		{"until the last attempt", NotStarted, MaxAttempts, Verdict{Error: CodeUnreachable}},
 		{"a rate limit is retried", RateLimited, 4, Verdict{Retry: true}},
 		{"and settles on the last attempt with Telegram's words", RateLimited, MaxAttempts, Verdict{Error: "Bad Request: nope"}},
+		{"an interrupted preparation is retried", Interrupted, 1, Verdict{Retry: true}},
+		{"and settles with the network's words", Interrupted, MaxAttempts, Verdict{Error: "Bad Request: nope"}},
 	}
 	for _, c := range cases {
 		if got := AfterFailure(c.kind, "Bad Request: nope", c.attempt); got != c.want {

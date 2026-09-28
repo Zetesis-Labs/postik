@@ -10,17 +10,23 @@ import (
 
 	"github.com/uptrace/bun"
 
+	"github.com/google/uuid"
+
 	"github.com/zetesis-labs/postik/internal/auth"
 	"github.com/zetesis-labs/postik/internal/config"
 	"github.com/zetesis-labs/postik/internal/connect"
+	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/email"
 	"github.com/zetesis-labs/postik/internal/httpapi"
 	"github.com/zetesis-labs/postik/internal/jobs"
 	"github.com/zetesis-labs/postik/internal/library"
+	"github.com/zetesis-labs/postik/internal/linkedin"
 	"github.com/zetesis-labs/postik/internal/notify"
 	"github.com/zetesis-labs/postik/internal/postgres"
+	"github.com/zetesis-labs/postik/internal/secretbox"
 	"github.com/zetesis-labs/postik/internal/storage"
 	"github.com/zetesis-labs/postik/internal/telegram"
+	"github.com/zetesis-labs/postik/internal/tokens"
 	"github.com/zetesis-labs/postik/internal/webui"
 )
 
@@ -57,10 +63,17 @@ func New(d Deps) (*App, error) {
 	if d.Config.Email != nil {
 		notices.Email = email.NewResend(d.Config.Email.APIURL, d.Config.Email.APIKey, d.Config.Email.From)
 	}
+	networks, err := newNetworks(d, channelStore, files)
+	if err != nil {
+		return nil, err
+	}
 	work, err := jobs.New(jobs.Deps{
 		DB:       d.DB,
 		Store:    postgres.NewPublications(d.DB),
 		Telegram: bot,
+		LinkedIn: networks.linkedIn,
+		Tokens:   networks.tokens,
+		Channels: channelStore,
 		Files:    files,
 		Notifier: notices,
 		Digester: notices,
@@ -82,6 +95,7 @@ func New(d Deps) (*App, error) {
 		Media:         &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
 		Posts:         postStore,
 		Notifications: notificationStore,
+		OAuth:         networks.oauth,
 		Now:           d.Now,
 		Logger:        d.Logger,
 	}
@@ -117,6 +131,9 @@ func New(d Deps) (*App, error) {
 		mux.HandleFunc("GET /api/v1/auth/oidc/login", oidc.Login)
 		mux.HandleFunc("GET "+auth.CallbackPath, oidc.Callback)
 	}
+	if networks.oauth != nil {
+		mux.HandleFunc("GET /api/v1/channels/{provider}/callback", oauthCallback(networks.oauth))
+	}
 	httpapi.HandlerWithOptions(
 		httpapi.NewStrictHandlerWithOptions(api, nil, httpapi.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc:  jsonError(d.Logger, http.StatusBadRequest, "bad_request"),
@@ -142,6 +159,59 @@ func New(d Deps) (*App, error) {
 	}))
 
 	return &App{Handler: crossOrigin.Handler(sessions.Middleware(limitUploads(mux))), Jobs: work}, nil
+}
+
+// networks is what postik needs to connect and use the networks with OAuth.
+type networks struct {
+	oauth    *connect.OAuth
+	tokens   *tokens.Keeper
+	linkedIn *linkedin.Client
+}
+
+func newNetworks(d Deps, channelStore *postgres.Channels, files storage.Files) (networks, error) {
+	if d.Config.LinkedIn == nil {
+		return networks{}, nil
+	}
+	box, err := secretbox.New(d.Config.EncryptionKey)
+	if err != nil {
+		return networks{}, err
+	}
+	li := d.Config.LinkedIn
+	client := linkedin.New(li.AuthURL, li.APIURL, li.ClientID, li.ClientSecret, li.Version)
+	profile := &connect.LinkedIn{Client: client, Now: d.Now}
+	page := &connect.LinkedInPage{LinkedIn: *profile}
+	keeper := &tokens.Keeper{
+		Store:    postgres.NewCredentials(d.DB),
+		Box:      box,
+		Renewers: map[string]tokens.Renewer{"linkedin": profile, "linkedin-page": page},
+		Now:      d.Now,
+	}
+	return networks{
+		oauth: &connect.OAuth{
+			Networks:  map[string]connect.Network{"linkedin": profile, "linkedin-page": page},
+			Store:     postgres.NewOAuth(d.DB),
+			Channels:  channelStore,
+			Tokens:    keeper,
+			Box:       box,
+			Files:     files,
+			PublicURL: d.Config.PublicURL.String(),
+			Now:       d.Now,
+			Logger:    d.Logger,
+		},
+		tokens:   keeper,
+		linkedIn: client,
+	}, nil
+}
+
+// oauthCallback is where the networks send the browser back (S06 §3).
+func oauthCallback(o *connect.OAuth) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var userID *uuid.UUID
+		if p, ok := auth.PrincipalFrom(r.Context()); ok && p.Kind == access.SessionMember {
+			userID = p.UserID
+		}
+		http.Redirect(w, r, o.Callback(r.Context(), userID, r.PathValue("provider"), r.URL.Query()), http.StatusFound)
+	}
 }
 
 // maxUploadBody bounds a whole upload request: the largest video plus room

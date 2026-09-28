@@ -179,6 +179,9 @@ const (
 	Rejected
 	// Unknown: the request went out and no answer came back.
 	Unknown
+	// Interrupted: a step before the point of no return failed, like a media
+	// upload; nothing was published.
+	Interrupted
 )
 
 // Verdict says whether to try again or, if not, the error the post keeps.

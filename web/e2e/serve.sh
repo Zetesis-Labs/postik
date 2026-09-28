@@ -36,6 +36,11 @@ export POSTIK_STORAGE_DIR="$(mktemp -d)"
 export POSTIK_RESEND_API_KEY="re_fake"
 export POSTIK_RESEND_API_URL="http://localhost:${fakes_port}/resend"
 export POSTIK_EMAIL_FROM="postik <postik@example.com>"
+export POSTIK_ENCRYPTION_KEY="ZTJlLW9ubHktZW5jcnlwdGlvbi1rZXktMzItYnl0ZXM="
+export POSTIK_LINKEDIN_CLIENT_ID="fake-linkedin-client"
+export POSTIK_LINKEDIN_CLIENT_SECRET="fake-linkedin-secret"
+export POSTIK_LINKEDIN_AUTH_URL="http://localhost:${fakes_port}/linkedin"
+export POSTIK_LINKEDIN_API_URL="http://localhost:${fakes_port}/linkedin"
 
 ./bin/postik migrate
 ./bin/postik serve &

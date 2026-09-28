@@ -41,10 +41,23 @@ func (s *Server) ListProviders(ctx context.Context, _ ListProvidersRequestObject
 		return ListProviders401JSONResponse{errUnauthenticated}, err
 	}
 	providers := ListProviders200JSONResponse{}
+	if s.OAuth != nil {
+		for _, identifier := range s.OAuth.Providers() {
+			providers = append(providers, Provider{Identifier: identifier, Name: providerNames[identifier]})
+		}
+	}
 	if s.Telegram != nil {
 		providers = append(providers, Provider{Identifier: "telegram", Name: "Telegram"})
 	}
 	return providers, nil
+}
+
+// providerNames are the names Postiz shows in the grid of «Añadir canal».
+var providerNames = map[string]string{
+	"linkedin":      "LinkedIn",
+	"linkedin-page": "LinkedIn Page",
+	"x":             "X",
+	"telegram":      "Telegram",
 }
 
 func toChannel(c postgres.Channel) Channel {
@@ -241,4 +254,99 @@ func (s *Server) GetTelegramConnection(ctx context.Context, request GetTelegramC
 		out.ChannelId = channelID
 	}
 	return out, nil
+}
+
+var (
+	errNetworkUnreachable  = errorBody("network_unreachable", "The network could not be reached")
+	errNotInBetweenSteps   = errorBody("not_in_between_steps", "The channel is not waiting for a page")
+	errPageNotAdministered = errorBody("page_not_administered", "You do not administer this page")
+)
+
+// activeMember returns the member of the session and the organization they
+// work in, or false when there is none.
+func (s *Server) activeMember(ctx context.Context) (uuid.UUID, uuid.UUID, bool, error) {
+	principal, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return uuid.Nil, uuid.Nil, false, nil
+	}
+	m, err := s.loadMember(ctx, principal)
+	if errors.Is(err, errNotAMember) {
+		return uuid.Nil, uuid.Nil, false, nil
+	}
+	if err != nil {
+		return uuid.Nil, uuid.Nil, false, err
+	}
+	return m.user.ID, m.active, m.active != uuid.Nil, nil
+}
+
+func (s *Server) StartChannelAuthorization(ctx context.Context, request StartChannelAuthorizationRequestObject) (StartChannelAuthorizationResponseObject, error) {
+	user, org, ok, err := s.activeMember(ctx)
+	if err != nil || !ok {
+		return StartChannelAuthorization401JSONResponse{errUnauthenticated}, err
+	}
+	if s.OAuth == nil {
+		return StartChannelAuthorization404JSONResponse(errProviderUnavailable), nil
+	}
+	url, err := s.OAuth.Start(ctx, org, user, request.Provider, request.Body.ChannelId)
+	switch {
+	case errors.Is(err, connect.ErrUnknownProvider):
+		return StartChannelAuthorization404JSONResponse(errProviderUnavailable), nil
+	case errors.Is(err, connect.ErrChannelNotFound):
+		return StartChannelAuthorization404JSONResponse(errChannelNotFound), nil
+	case err != nil:
+		s.Logger.ErrorContext(ctx, "start the authorization", "provider", request.Provider, "error", err)
+		return StartChannelAuthorization502JSONResponse(errNetworkUnreachable), nil
+	}
+	return StartChannelAuthorization201JSONResponse{Url: url}, nil
+}
+
+func (s *Server) ListChannelPages(ctx context.Context, request ListChannelPagesRequestObject) (ListChannelPagesResponseObject, error) {
+	org, ok, err := s.activeOrganization(ctx)
+	if err != nil || !ok {
+		return ListChannelPages401JSONResponse{errUnauthenticated}, err
+	}
+	if s.OAuth == nil {
+		return ListChannelPages404JSONResponse(errChannelNotFound), nil
+	}
+	pages, err := s.OAuth.Pages(ctx, org, request.Id)
+	switch {
+	case errors.Is(err, connect.ErrChannelNotFound):
+		return ListChannelPages404JSONResponse(errChannelNotFound), nil
+	case errors.Is(err, connect.ErrNotInBetweenSteps):
+		return ListChannelPages409JSONResponse(errNotInBetweenSteps), nil
+	case err != nil:
+		s.Logger.ErrorContext(ctx, "list the pages", "channel", request.Id, "error", err)
+		return ListChannelPages502JSONResponse(errNetworkUnreachable), nil
+	}
+	out := make(ListChannelPages200JSONResponse, len(pages))
+	for i, p := range pages {
+		out[i] = ChannelPage{Id: p.ID, Name: p.Name}
+		if p.PictureURL != "" {
+			out[i].Picture = &p.PictureURL
+		}
+	}
+	return out, nil
+}
+
+func (s *Server) ChooseChannelPage(ctx context.Context, request ChooseChannelPageRequestObject) (ChooseChannelPageResponseObject, error) {
+	org, ok, err := s.activeOrganization(ctx)
+	if err != nil || !ok {
+		return ChooseChannelPage401JSONResponse{errUnauthenticated}, err
+	}
+	if s.OAuth == nil {
+		return ChooseChannelPage404JSONResponse(errChannelNotFound), nil
+	}
+	channel, err := s.OAuth.ChoosePage(ctx, org, request.Id, request.Body.PageId)
+	switch {
+	case errors.Is(err, connect.ErrChannelNotFound):
+		return ChooseChannelPage404JSONResponse(errChannelNotFound), nil
+	case errors.Is(err, connect.ErrNotInBetweenSteps):
+		return ChooseChannelPage409JSONResponse(errNotInBetweenSteps), nil
+	case errors.Is(err, connect.ErrPageNotAdministered):
+		return ChooseChannelPage403JSONResponse(errPageNotAdministered), nil
+	case err != nil:
+		s.Logger.ErrorContext(ctx, "choose the page", "channel", request.Id, "error", err)
+		return ChooseChannelPage502JSONResponse(errNetworkUnreachable), nil
+	}
+	return ChooseChannelPage200JSONResponse(toChannel(*channel)), nil
 }

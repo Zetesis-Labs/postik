@@ -7,6 +7,7 @@ import { api, Notification } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { dayjs } from '@/lib/dates';
 import { useClickOutside } from '@/components/launches/select-customer';
+import { providerName } from '@/lib/channel-oauth';
 
 const notificationsKey = ['notifications'];
 
@@ -23,7 +24,7 @@ function useNotificationText() {
   const t = useT();
   return useCallback(
     (n: Notification) => {
-      const provider = n.params.provider ? n.params.provider[0].toUpperCase() + n.params.provider.slice(1) : '';
+      const provider = providerName(n.params.provider ?? '');
       const reason = n.params.reason ? t(`post_error_${n.params.reason}`, n.params.reason) : '';
       return t(`notification_${n.template}`, n.template, { ...n.params, provider, reason, interpolation: { escapeValue: false } });
     },

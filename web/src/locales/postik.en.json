@@ -82,5 +82,19 @@
   "notification_comment_failed": "Error posting comments on {{provider}} for {{channel}}: {{reason}}",
   "notification_unconfirmed": "We couldn't confirm your post on {{provider}}. Please check {{channel}}",
   "notification_channel_disabled": "We couldn't post to {{channel}} because it's disabled. Please enable it and try again",
-  "notification_channel_refresh": "We couldn't post to {{channel}} because you need to reconnect it"
+  "notification_channel_refresh": "We couldn't post to {{channel}} because you need to reconnect it",
+  "network_unreachable": "The network could not be reached",
+  "configure_channel": "Configure Channel",
+  "page_not_saved": "The page could not be saved",
+  "oauth_error_denied": "The authorization was cancelled",
+  "oauth_error_invalid_state": "The authorization is not valid. Please start again",
+  "oauth_error_expired": "The authorization has expired. Please start again",
+  "oauth_error_exchange_failed": "The connection with the network could not be completed",
+  "oauth_error_missing_permissions": "Not every required permission was granted",
+  "oauth_error_wrong_account": "You authorized another account. Reconnect with the channel's account",
+  "post_problem_video_alone": "A video has to go alone, without other media",
+  "post_problem_too_many_media": "There are more media than the network accepts",
+  "post_problem_comment_media": "Comments on this network do not take media",
+  "notification_refresh_failed": "We couldn't renew your {{provider}} channel {{channel}}. Please reconnect it",
+  "notification_channel_expiring": "Your {{provider}} channel {{channel}} expires in {{days}} days. Reconnect it before so its posts don't fail"
 }

@@ -82,5 +82,19 @@
   "notification_comment_failed": "Error al publicar los comentarios en {{provider}} en {{channel}}: {{reason}}",
   "notification_unconfirmed": "No se ha podido confirmar tu post en {{provider}}. Revisa {{channel}}",
   "notification_channel_disabled": "No se ha podido publicar en {{channel}} porque está desactivado. Actívalo y vuelve a intentarlo",
-  "notification_channel_refresh": "No se ha podido publicar en {{channel}} porque hay que volver a conectarlo"
+  "notification_channel_refresh": "No se ha podido publicar en {{channel}} porque hay que volver a conectarlo",
+  "network_unreachable": "No se ha podido conectar con la red",
+  "configure_channel": "Configurar canal",
+  "page_not_saved": "No se ha podido guardar la página",
+  "oauth_error_denied": "Se ha cancelado la autorización",
+  "oauth_error_invalid_state": "La autorización no es válida. Vuelve a empezar",
+  "oauth_error_expired": "La autorización ha caducado. Vuelve a empezar",
+  "oauth_error_exchange_failed": "No se ha podido completar la conexión con la red",
+  "oauth_error_missing_permissions": "No se han concedido todos los permisos necesarios",
+  "oauth_error_wrong_account": "Has autorizado otra cuenta. Reconecta con la cuenta del canal",
+  "post_problem_video_alone": "Un vídeo tiene que ir solo, sin otros medios",
+  "post_problem_too_many_media": "Hay más medios de los que admite la red",
+  "post_problem_comment_media": "Los comentarios de esta red no admiten medios",
+  "notification_refresh_failed": "No se ha podido renovar tu canal {{channel}} de {{provider}}. Vuelve a conectarlo",
+  "notification_channel_expiring": "Tu canal {{channel}} de {{provider}} caduca en {{days}} días. Vuelve a conectarlo antes para que sus posts no fallen"
 }

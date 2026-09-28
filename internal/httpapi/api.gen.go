@@ -282,10 +282,28 @@ type Channel struct {
 	Username       string             `json:"username"`
 }
 
+// ChannelAuthorization defines model for ChannelAuthorization.
+type ChannelAuthorization struct {
+	Url string `json:"url"`
+}
+
+// ChannelAuthorizationInput defines model for ChannelAuthorizationInput.
+type ChannelAuthorizationInput struct {
+	// ChannelId The channel to reconnect.
+	ChannelId *openapi_types.UUID `json:"channelId,omitempty"`
+}
+
 // ChannelCustomer With name, moves by name (created if missing; blank removes). Otherwise moves to customerId, or removes when it is absent or null.
 type ChannelCustomer struct {
 	CustomerId *openapi_types.UUID `json:"customerId,omitempty"`
 	Name       *string             `json:"name,omitempty"`
+}
+
+// ChannelPage defines model for ChannelPage.
+type ChannelPage struct {
+	Id      string  `json:"id"`
+	Name    string  `json:"name"`
+	Picture *string `json:"picture,omitempty"`
 }
 
 // ChannelPostInput defines model for ChannelPostInput.
@@ -584,6 +602,11 @@ type SetChannelDisabledJSONBody struct {
 	Disabled bool `json:"disabled"`
 }
 
+// ChooseChannelPageJSONBody defines parameters for ChooseChannelPage.
+type ChooseChannelPageJSONBody struct {
+	PageId string `json:"pageId"`
+}
+
 // SetChannelPostingTimesJSONBody defines parameters for SetChannelPostingTimes.
 type SetChannelPostingTimesJSONBody struct {
 	Times []int `json:"times"`
@@ -635,8 +658,14 @@ type SetChannelCustomerJSONRequestBody = ChannelCustomer
 // SetChannelDisabledJSONRequestBody defines body for SetChannelDisabled for application/json ContentType.
 type SetChannelDisabledJSONRequestBody SetChannelDisabledJSONBody
 
+// ChooseChannelPageJSONRequestBody defines body for ChooseChannelPage for application/json ContentType.
+type ChooseChannelPageJSONRequestBody ChooseChannelPageJSONBody
+
 // SetChannelPostingTimesJSONRequestBody defines body for SetChannelPostingTimes for application/json ContentType.
 type SetChannelPostingTimesJSONRequestBody SetChannelPostingTimesJSONBody
+
+// StartChannelAuthorizationJSONRequestBody defines body for StartChannelAuthorization for application/json ContentType.
+type StartChannelAuthorizationJSONRequestBody = ChannelAuthorizationInput
 
 // SetActiveOrganizationJSONRequestBody defines body for SetActiveOrganization for application/json ContentType.
 type SetActiveOrganizationJSONRequestBody = ActiveOrganization
@@ -698,8 +727,17 @@ type ServerInterface interface {
 	// (PUT /channels/{id}/disabled)
 	SetChannelDisabled(w http.ResponseWriter, r *http.Request, id ChannelID)
 
+	// (PUT /channels/{id}/page)
+	ChooseChannelPage(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (GET /channels/{id}/pages)
+	ListChannelPages(w http.ResponseWriter, r *http.Request, id ChannelID)
+
 	// (PUT /channels/{id}/posting-times)
 	SetChannelPostingTimes(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (POST /channels/{provider}/authorizations)
+	StartChannelAuthorization(w http.ResponseWriter, r *http.Request, provider string)
 
 	// (GET /customers)
 	ListCustomers(w http.ResponseWriter, r *http.Request)
@@ -957,6 +995,58 @@ func (siw *ServerInterfaceWrapper) SetChannelDisabled(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// ChooseChannelPage operation middleware
+func (siw *ServerInterfaceWrapper) ChooseChannelPage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChooseChannelPage(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChannelPages operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelPages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelPages(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetChannelPostingTimes operation middleware
 func (siw *ServerInterfaceWrapper) SetChannelPostingTimes(w http.ResponseWriter, r *http.Request) {
 
@@ -974,6 +1064,32 @@ func (siw *ServerInterfaceWrapper) SetChannelPostingTimes(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetChannelPostingTimes(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartChannelAuthorization operation middleware
+func (siw *ServerInterfaceWrapper) StartChannelAuthorization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "provider" -------------
+	var provider string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", r.PathValue("provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartChannelAuthorization(w, r, provider)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1688,6 +1804,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/customers", wrapper.ListCustomers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/channels/telegram/connections", wrapper.OpenTelegramConnection)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/channels/telegram/connections/{code}", wrapper.GetTelegramConnection)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/channels/{provider}/authorizations", wrapper.StartChannelAuthorization)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/channels/{id}/pages", wrapper.ListChannelPages)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/channels/{id}/page", wrapper.ChooseChannelPage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/media", wrapper.ListMedia)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/media", wrapper.UploadMedia)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/media/{id}", wrapper.DeleteMedia)
@@ -2117,6 +2236,177 @@ func (response SetChannelDisabled404JSONResponse) VisitSetChannelDisabledRespons
 	return err
 }
 
+type ChooseChannelPageRequestObject struct {
+	Id   ChannelID `json:"id"`
+	Body *ChooseChannelPageJSONRequestBody
+}
+
+type ChooseChannelPageResponseObject interface {
+	VisitChooseChannelPageResponse(w http.ResponseWriter) error
+}
+
+type ChooseChannelPage200JSONResponse Channel
+
+func (response ChooseChannelPage200JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChooseChannelPage401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ChooseChannelPage401JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChooseChannelPage403JSONResponse Error
+
+func (response ChooseChannelPage403JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChooseChannelPage404JSONResponse Error
+
+func (response ChooseChannelPage404JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChooseChannelPage409JSONResponse Error
+
+func (response ChooseChannelPage409JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChooseChannelPage502JSONResponse Error
+
+func (response ChooseChannelPage502JSONResponse) VisitChooseChannelPageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelPagesRequestObject struct {
+	Id ChannelID `json:"id"`
+}
+
+type ListChannelPagesResponseObject interface {
+	VisitListChannelPagesResponse(w http.ResponseWriter) error
+}
+
+type ListChannelPages200JSONResponse []ChannelPage
+
+func (response ListChannelPages200JSONResponse) VisitListChannelPagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelPages401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListChannelPages401JSONResponse) VisitListChannelPagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelPages404JSONResponse Error
+
+func (response ListChannelPages404JSONResponse) VisitListChannelPagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelPages409JSONResponse Error
+
+func (response ListChannelPages409JSONResponse) VisitListChannelPagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelPages502JSONResponse Error
+
+func (response ListChannelPages502JSONResponse) VisitListChannelPagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetChannelPostingTimesRequestObject struct {
 	Id   ChannelID `json:"id"`
 	Body *SetChannelPostingTimesJSONRequestBody
@@ -2172,6 +2462,71 @@ func (response SetChannelPostingTimes404JSONResponse) VisitSetChannelPostingTime
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartChannelAuthorizationRequestObject struct {
+	Provider string `json:"provider"`
+	Body     *StartChannelAuthorizationJSONRequestBody
+}
+
+type StartChannelAuthorizationResponseObject interface {
+	VisitStartChannelAuthorizationResponse(w http.ResponseWriter) error
+}
+
+type StartChannelAuthorization201JSONResponse ChannelAuthorization
+
+func (response StartChannelAuthorization201JSONResponse) VisitStartChannelAuthorizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartChannelAuthorization401JSONResponse struct{ ErrorJSONResponse }
+
+func (response StartChannelAuthorization401JSONResponse) VisitStartChannelAuthorizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartChannelAuthorization404JSONResponse Error
+
+func (response StartChannelAuthorization404JSONResponse) VisitStartChannelAuthorizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartChannelAuthorization502JSONResponse Error
+
+func (response StartChannelAuthorization502JSONResponse) VisitStartChannelAuthorizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3367,8 +3722,17 @@ type StrictServerInterface interface {
 	// (PUT /channels/{id}/disabled)
 	SetChannelDisabled(ctx context.Context, request SetChannelDisabledRequestObject) (SetChannelDisabledResponseObject, error)
 
+	// (PUT /channels/{id}/page)
+	ChooseChannelPage(ctx context.Context, request ChooseChannelPageRequestObject) (ChooseChannelPageResponseObject, error)
+
+	// (GET /channels/{id}/pages)
+	ListChannelPages(ctx context.Context, request ListChannelPagesRequestObject) (ListChannelPagesResponseObject, error)
+
 	// (PUT /channels/{id}/posting-times)
 	SetChannelPostingTimes(ctx context.Context, request SetChannelPostingTimesRequestObject) (SetChannelPostingTimesResponseObject, error)
+
+	// (POST /channels/{provider}/authorizations)
+	StartChannelAuthorization(ctx context.Context, request StartChannelAuthorizationRequestObject) (StartChannelAuthorizationResponseObject, error)
 
 	// (GET /customers)
 	ListCustomers(ctx context.Context, request ListCustomersRequestObject) (ListCustomersResponseObject, error)
@@ -3727,6 +4091,65 @@ func (sh *strictHandler) SetChannelDisabled(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// ChooseChannelPage operation middleware
+func (sh *strictHandler) ChooseChannelPage(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request ChooseChannelPageRequestObject
+
+	request.Id = id
+
+	var body ChooseChannelPageJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChooseChannelPage(ctx, request.(ChooseChannelPageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChooseChannelPage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChooseChannelPageResponseObject); ok {
+		if err := validResponse.VisitChooseChannelPageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChannelPages operation middleware
+func (sh *strictHandler) ListChannelPages(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request ListChannelPagesRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChannelPages(ctx, request.(ListChannelPagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChannelPages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChannelPagesResponseObject); ok {
+		if err := validResponse.VisitListChannelPagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SetChannelPostingTimes operation middleware
 func (sh *strictHandler) SetChannelPostingTimes(w http.ResponseWriter, r *http.Request, id ChannelID) {
 	var request SetChannelPostingTimesRequestObject
@@ -3753,6 +4176,39 @@ func (sh *strictHandler) SetChannelPostingTimes(w http.ResponseWriter, r *http.R
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetChannelPostingTimesResponseObject); ok {
 		if err := validResponse.VisitSetChannelPostingTimesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartChannelAuthorization operation middleware
+func (sh *strictHandler) StartChannelAuthorization(w http.ResponseWriter, r *http.Request, provider string) {
+	var request StartChannelAuthorizationRequestObject
+
+	request.Provider = provider
+
+	var body StartChannelAuthorizationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartChannelAuthorization(ctx, request.(StartChannelAuthorizationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartChannelAuthorization")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartChannelAuthorizationResponseObject); ok {
+		if err := validResponse.VisitStartChannelAuthorizationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -23,8 +23,18 @@ var reasons = map[string]string{
 	"unreachable":      "no se ha podido conectar con la red",
 }
 
+var providerNames = map[string]string{
+	"telegram":      "Telegram",
+	"linkedin":      "LinkedIn",
+	"linkedin-page": "LinkedIn Page",
+	"x":             "X",
+}
+
 func provider(n Notice) string {
 	name := n.Params["provider"]
+	if display, ok := providerNames[name]; ok {
+		return display
+	}
 	if name == "" {
 		return ""
 	}
@@ -54,6 +64,10 @@ func Text(n Notice) string {
 		return fmt.Sprintf("No se ha podido publicar en %s porque está desactivado. Actívalo y vuelve a intentarlo", channel)
 	case "channel_refresh":
 		return fmt.Sprintf("No se ha podido publicar en %s porque hay que volver a conectarlo", channel)
+	case "refresh_failed":
+		return fmt.Sprintf("No se ha podido renovar tu canal %s de %s. Vuelve a conectarlo", channel, provider(n))
+	case "channel_expiring":
+		return fmt.Sprintf("Tu canal %s de %s caduca en %s días. Vuelve a conectarlo antes para que sus posts no fallen", channel, provider(n), n.Params["days"])
 	}
 	return n.Template
 }
@@ -67,6 +81,10 @@ func subject(n Notice) string {
 		return fmt.Sprintf("Error al publicar en %s en %s", provider(n), channel)
 	case "unconfirmed":
 		return "No se ha podido confirmar tu post en " + provider(n)
+	case "refresh_failed":
+		return "Vuelve a conectar tu canal de " + provider(n)
+	case "channel_expiring":
+		return fmt.Sprintf("Tu canal de %s caduca en %s días", provider(n), n.Params["days"])
 	}
 	return "No se ha podido publicar en " + channel
 }

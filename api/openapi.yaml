@@ -225,6 +225,91 @@ paths:
           $ref: "#/components/responses/Error"
         "502":
           $ref: "#/components/responses/Error"
+  /channels/{provider}/authorizations:
+    post:
+      operationId: startChannelAuthorization
+      description: Starts connecting (or, with channelId, reconnecting) a channel with OAuth. The screen sends the browser to url.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelAuthorizationInput"
+      responses:
+        "201":
+          description: Authorization started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelAuthorization"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /channels/{id}/pages:
+    get:
+      operationId: listChannelPages
+      description: The pages the member who connected a channel in between steps can choose from.
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      responses:
+        "200":
+          description: Pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChannelPage"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /channels/{id}/page:
+    put:
+      operationId: chooseChannelPage
+      description: Chooses the page of a channel in between steps. Answers the channel that holds the page, which is another one when the page was already connected.
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pageId]
+              properties:
+                pageId:
+                  type: string
+      responses:
+        "200":
+          description: The channel of the page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Channel"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
   /media:
     get:
       operationId: listMedia
@@ -1046,6 +1131,29 @@ components:
           type: array
           items:
             type: integer
+    ChannelAuthorizationInput:
+      type: object
+      properties:
+        channelId:
+          type: string
+          format: uuid
+          description: The channel to reconnect.
+    ChannelAuthorization:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+    ChannelPage:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        picture:
+          type: string
     ChannelCustomer:
       type: object
       description: With name, moves by name (created if missing; blank removes). Otherwise moves to customerId, or removes when it is absent or null.

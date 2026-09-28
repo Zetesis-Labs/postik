@@ -21,6 +21,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/jobs"
 	"github.com/zetesis-labs/postik/internal/testsupport"
+	"github.com/zetesis-labs/postik/internal/testsupport/fakelinkedin"
 	"github.com/zetesis-labs/postik/internal/testsupport/fakeoidc"
 	"github.com/zetesis-labs/postik/internal/testsupport/faketelegram"
 )
@@ -28,16 +29,17 @@ import (
 var testTOTPSecret = []byte("postik-test-totp-secret!")
 
 type harness struct {
-	t       *testing.T
-	server  *httptest.Server
-	handler http.Handler
-	clock   *testsupport.Clock
-	db      *bun.DB
-	config  config.Config
-	oidc    *fakeoidc.Provider
-	bot     *faketelegram.Bot
-	botAPI  *httptest.Server
-	jobs    *jobs.Jobs
+	t        *testing.T
+	server   *httptest.Server
+	handler  http.Handler
+	clock    *testsupport.Clock
+	db       *bun.DB
+	config   config.Config
+	oidc     *fakeoidc.Provider
+	bot      *faketelegram.Bot
+	botAPI   *httptest.Server
+	linkedIn *fakelinkedin.Server
+	jobs     *jobs.Jobs
 }
 
 type harnessOption func(*config.Config)
@@ -86,6 +88,9 @@ func newHarness(t *testing.T, options ...harnessOption) *harness {
 	}
 	if cfg.Telegram != nil {
 		startTelegram(h, &cfg)
+	}
+	if cfg.LinkedIn != nil {
+		startLinkedIn(h, &cfg)
 	}
 	h.config = cfg
 	a, err := app.New(app.Deps{

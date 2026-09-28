@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n';
 import { useModals } from '@/components/ui/modals';
 import { useToaster } from '@/components/ui/toaster';
 import { TelegramProvider } from '@/components/launches/telegram-provider';
+import { startAuthorization } from '@/lib/channel-oauth';
 
 export const useAddProvider = () => {
   const modal = useModals();
@@ -59,6 +60,7 @@ export const AddProviderComponent: FC<{ social: Provider[] }> = ({ social }) => 
   const openProvider = useCallback(
     (identifier: string) => () => {
       if (identifier !== 'telegram') {
+        startAuthorization(identifier).catch(() => toaster.show(t('network_unreachable', 'The network could not be reached'), 'warning'));
         return;
       }
       modal.openModal({

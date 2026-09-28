@@ -2,6 +2,8 @@
 // entities and count UTF-16 code units, so the editor and the server agree.
 const limits: Record<string, number> = {
   telegram: 4096,
+  linkedin: 3000,
+  'linkedin-page': 3000,
 };
 
 export function characterLimit(provider: string): number {
