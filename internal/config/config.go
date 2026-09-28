@@ -17,6 +17,13 @@ type Config struct {
 	Superadmin        access.Superadmin
 	OIDC              *OIDC
 	RequireInvitation bool
+	Telegram          *Telegram
+	StorageDir        string
+}
+
+type Telegram struct {
+	BotToken string
+	APIURL   string
 }
 
 type OIDC struct {
@@ -78,6 +85,17 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.Superadmin.RecoveryCodes = splitList(value("POSTIK_SUPERADMIN_RECOVERY_CODES"))
 	if len(cfg.Superadmin.RecoveryCodes) > 0 && value("POSTIK_SUPERADMIN_TOTP_SECRET") == "" {
 		problems = append(problems, errors.New("POSTIK_SUPERADMIN_RECOVERY_CODES needs POSTIK_SUPERADMIN_TOTP_SECRET"))
+	}
+
+	cfg.StorageDir = value("POSTIK_STORAGE_DIR")
+	if cfg.StorageDir == "" {
+		cfg.StorageDir = "data"
+	}
+	if token := value("POSTIK_TELEGRAM_BOT_TOKEN"); token != "" {
+		cfg.Telegram = &Telegram{BotToken: token, APIURL: strings.TrimRight(value("POSTIK_TELEGRAM_API_URL"), "/")}
+		if cfg.Telegram.APIURL == "" {
+			cfg.Telegram.APIURL = "https://api.telegram.org"
+		}
 	}
 
 	oidc, oidcProblems := loadOIDC(value)

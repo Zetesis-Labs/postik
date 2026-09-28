@@ -34,3 +34,31 @@ export const instanceQuery = queryOptions({
   },
   staleTime: Infinity,
 });
+
+export type Channel = components['schemas']['Channel'];
+export type Provider = components['schemas']['Provider'];
+export type Customer = components['schemas']['Customer'];
+
+async function required<T>(call: Promise<{ data?: T; response: Response }>, what: string): Promise<T> {
+  const { data, response } = await call;
+  if (data === undefined) {
+    throw new Error(`${what} answered ${response.status}`);
+  }
+  return data;
+}
+
+export const channelsQuery = queryOptions({
+  queryKey: ['channels'],
+  queryFn: () => required(api.GET('/channels'), 'GET /channels'),
+});
+
+export const providersQuery = queryOptions({
+  queryKey: ['providers'],
+  queryFn: () => required(api.GET('/channels/providers'), 'GET /channels/providers'),
+  staleTime: Infinity,
+});
+
+export const customersQuery = queryOptions({
+  queryKey: ['customers'],
+  queryFn: () => required(api.GET('/customers'), 'GET /customers'),
+});

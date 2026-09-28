@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -54,9 +55,56 @@ func (e MeOrganizationRole) Valid() bool {
 	}
 }
 
+// Defines values for TelegramConnectionStatusStatus.
+const (
+	Connected TelegramConnectionStatusStatus = "connected"
+	Expired   TelegramConnectionStatusStatus = "expired"
+	Pending   TelegramConnectionStatusStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the TelegramConnectionStatusStatus enum.
+func (e TelegramConnectionStatusStatus) Valid() bool {
+	switch e {
+	case Connected:
+		return true
+	case Expired:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
 // ActiveOrganization defines model for ActiveOrganization.
 type ActiveOrganization struct {
 	OrganizationId openapi_types.UUID `json:"organizationId"`
+}
+
+// Channel defines model for Channel.
+type Channel struct {
+	Customer       *Customer          `json:"customer,omitempty"`
+	Disabled       bool               `json:"disabled"`
+	Id             openapi_types.UUID `json:"id"`
+	InBetweenSteps bool               `json:"inBetweenSteps"`
+	Name           string             `json:"name"`
+	Picture        *string            `json:"picture,omitempty"`
+	PostingTimes   []int              `json:"postingTimes"`
+	Provider       string             `json:"provider"`
+	RefreshNeeded  bool               `json:"refreshNeeded"`
+	Username       string             `json:"username"`
+}
+
+// ChannelCustomer With name, moves by name (created if missing; blank removes). Otherwise moves to customerId, or removes when it is absent or null.
+type ChannelCustomer struct {
+	CustomerId *openapi_types.UUID `json:"customerId,omitempty"`
+	Name       *string             `json:"name,omitempty"`
+}
+
+// Customer defines model for Customer.
+type Customer struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
 }
 
 // Error defines model for Error.
@@ -105,6 +153,12 @@ type OidcProvider struct {
 	Name string `json:"name"`
 }
 
+// Provider defines model for Provider.
+type Provider struct {
+	Identifier string `json:"identifier"`
+	Name       string `json:"name"`
+}
+
 // SuperadminLogin defines model for SuperadminLogin.
 type SuperadminLogin struct {
 	Code     *string `json:"code,omitempty"`
@@ -112,8 +166,45 @@ type SuperadminLogin struct {
 	Username string  `json:"username"`
 }
 
+// TelegramConnection defines model for TelegramConnection.
+type TelegramConnection struct {
+	BotUsername string `json:"botUsername"`
+	Code        string `json:"code"`
+}
+
+// TelegramConnectionStatus defines model for TelegramConnectionStatus.
+type TelegramConnectionStatus struct {
+	ChannelId *openapi_types.UUID            `json:"channelId,omitempty"`
+	Status    TelegramConnectionStatusStatus `json:"status"`
+}
+
+// TelegramConnectionStatusStatus defines model for TelegramConnectionStatus.Status.
+type TelegramConnectionStatusStatus string
+
+// ChannelID defines model for ChannelID.
+type ChannelID = openapi_types.UUID
+
+// SetChannelDisabledJSONBody defines parameters for SetChannelDisabled.
+type SetChannelDisabledJSONBody struct {
+	Disabled bool `json:"disabled"`
+}
+
+// SetChannelPostingTimesJSONBody defines parameters for SetChannelPostingTimes.
+type SetChannelPostingTimesJSONBody struct {
+	Times []int `json:"times"`
+}
+
 // LoginSuperadminJSONRequestBody defines body for LoginSuperadmin for application/json ContentType.
 type LoginSuperadminJSONRequestBody = SuperadminLogin
+
+// SetChannelCustomerJSONRequestBody defines body for SetChannelCustomer for application/json ContentType.
+type SetChannelCustomerJSONRequestBody = ChannelCustomer
+
+// SetChannelDisabledJSONRequestBody defines body for SetChannelDisabled for application/json ContentType.
+type SetChannelDisabledJSONRequestBody SetChannelDisabledJSONBody
+
+// SetChannelPostingTimesJSONRequestBody defines body for SetChannelPostingTimes for application/json ContentType.
+type SetChannelPostingTimesJSONRequestBody SetChannelPostingTimesJSONBody
 
 // SetActiveOrganizationJSONRequestBody defines body for SetActiveOrganization for application/json ContentType.
 type SetActiveOrganizationJSONRequestBody = ActiveOrganization
@@ -126,6 +217,33 @@ type ServerInterface interface {
 
 	// (POST /auth/superadmin)
 	LoginSuperadmin(w http.ResponseWriter, r *http.Request)
+
+	// (GET /channels)
+	ListChannels(w http.ResponseWriter, r *http.Request)
+
+	// (GET /channels/providers)
+	ListProviders(w http.ResponseWriter, r *http.Request)
+
+	// (POST /channels/telegram/connections)
+	OpenTelegramConnection(w http.ResponseWriter, r *http.Request)
+
+	// (GET /channels/telegram/connections/{code})
+	GetTelegramConnection(w http.ResponseWriter, r *http.Request, code string)
+
+	// (DELETE /channels/{id})
+	DeleteChannel(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (PUT /channels/{id}/customer)
+	SetChannelCustomer(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (PUT /channels/{id}/disabled)
+	SetChannelDisabled(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (PUT /channels/{id}/posting-times)
+	SetChannelPostingTimes(w http.ResponseWriter, r *http.Request, id ChannelID)
+
+	// (GET /customers)
+	ListCustomers(w http.ResponseWriter, r *http.Request)
 
 	// (GET /instance)
 	GetInstance(w http.ResponseWriter, r *http.Request)
@@ -165,6 +283,192 @@ func (siw *ServerInterfaceWrapper) LoginSuperadmin(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LoginSuperadmin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChannels operation middleware
+func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannels(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListProviders operation middleware
+func (siw *ServerInterfaceWrapper) ListProviders(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListProviders(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OpenTelegramConnection operation middleware
+func (siw *ServerInterfaceWrapper) OpenTelegramConnection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OpenTelegramConnection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTelegramConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetTelegramConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "code" -------------
+	var code string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "code", r.PathValue("code"), &code, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTelegramConnection(w, r, code)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteChannel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelCustomer operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelCustomer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelCustomer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelDisabled operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelDisabled(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelDisabled(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelPostingTimes operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelPostingTimes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ChannelID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelPostingTimes(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCustomers operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomers(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -340,6 +644,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/superadmin", wrapper.LoginSuperadmin)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/logout", wrapper.Logout)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/active-organization", wrapper.SetActiveOrganization)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/channels/providers", wrapper.ListProviders)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/channels", wrapper.ListChannels)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/channels/{id}", wrapper.DeleteChannel)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/channels/{id}/disabled", wrapper.SetChannelDisabled)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/channels/{id}/customer", wrapper.SetChannelCustomer)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/channels/{id}/posting-times", wrapper.SetChannelPostingTimes)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/customers", wrapper.ListCustomers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/channels/telegram/connections", wrapper.OpenTelegramConnection)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/channels/telegram/connections/{code}", wrapper.GetTelegramConnection)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
 	return m
@@ -405,6 +718,431 @@ func (response LoginSuperadmin200JSONResponse) VisitLoginSuperadminResponse(w ht
 type LoginSuperadmin401JSONResponse struct{ ErrorJSONResponse }
 
 func (response LoginSuperadmin401JSONResponse) VisitLoginSuperadminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelsRequestObject struct {
+}
+
+type ListChannelsResponseObject interface {
+	VisitListChannelsResponse(w http.ResponseWriter) error
+}
+
+type ListChannels200JSONResponse []Channel
+
+func (response ListChannels200JSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannels401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListChannels401JSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProvidersRequestObject struct {
+}
+
+type ListProvidersResponseObject interface {
+	VisitListProvidersResponse(w http.ResponseWriter) error
+}
+
+type ListProviders200JSONResponse []Provider
+
+func (response ListProviders200JSONResponse) VisitListProvidersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviders401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListProviders401JSONResponse) VisitListProvidersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenTelegramConnectionRequestObject struct {
+}
+
+type OpenTelegramConnectionResponseObject interface {
+	VisitOpenTelegramConnectionResponse(w http.ResponseWriter) error
+}
+
+type OpenTelegramConnection201JSONResponse TelegramConnection
+
+func (response OpenTelegramConnection201JSONResponse) VisitOpenTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenTelegramConnection401JSONResponse struct{ ErrorJSONResponse }
+
+func (response OpenTelegramConnection401JSONResponse) VisitOpenTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenTelegramConnection404JSONResponse Error
+
+func (response OpenTelegramConnection404JSONResponse) VisitOpenTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type OpenTelegramConnection502JSONResponse Error
+
+func (response OpenTelegramConnection502JSONResponse) VisitOpenTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTelegramConnectionRequestObject struct {
+	Code string `json:"code"`
+}
+
+type GetTelegramConnectionResponseObject interface {
+	VisitGetTelegramConnectionResponse(w http.ResponseWriter) error
+}
+
+type GetTelegramConnection200JSONResponse TelegramConnectionStatus
+
+func (response GetTelegramConnection200JSONResponse) VisitGetTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTelegramConnection401JSONResponse struct{ ErrorJSONResponse }
+
+func (response GetTelegramConnection401JSONResponse) VisitGetTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTelegramConnection404JSONResponse Error
+
+func (response GetTelegramConnection404JSONResponse) VisitGetTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTelegramConnection502JSONResponse Error
+
+func (response GetTelegramConnection502JSONResponse) VisitGetTelegramConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(502)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannelRequestObject struct {
+	Id ChannelID `json:"id"`
+}
+
+type DeleteChannelResponseObject interface {
+	VisitDeleteChannelResponse(w http.ResponseWriter) error
+}
+
+type DeleteChannel204Response struct {
+}
+
+func (response DeleteChannel204Response) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteChannel401JSONResponse struct{ ErrorJSONResponse }
+
+func (response DeleteChannel401JSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannel404JSONResponse Error
+
+func (response DeleteChannel404JSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelCustomerRequestObject struct {
+	Id   ChannelID `json:"id"`
+	Body *SetChannelCustomerJSONRequestBody
+}
+
+type SetChannelCustomerResponseObject interface {
+	VisitSetChannelCustomerResponse(w http.ResponseWriter) error
+}
+
+type SetChannelCustomer204Response struct {
+}
+
+func (response SetChannelCustomer204Response) VisitSetChannelCustomerResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetChannelCustomer401JSONResponse struct{ ErrorJSONResponse }
+
+func (response SetChannelCustomer401JSONResponse) VisitSetChannelCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelCustomer404JSONResponse Error
+
+func (response SetChannelCustomer404JSONResponse) VisitSetChannelCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelDisabledRequestObject struct {
+	Id   ChannelID `json:"id"`
+	Body *SetChannelDisabledJSONRequestBody
+}
+
+type SetChannelDisabledResponseObject interface {
+	VisitSetChannelDisabledResponse(w http.ResponseWriter) error
+}
+
+type SetChannelDisabled204Response struct {
+}
+
+func (response SetChannelDisabled204Response) VisitSetChannelDisabledResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetChannelDisabled401JSONResponse struct{ ErrorJSONResponse }
+
+func (response SetChannelDisabled401JSONResponse) VisitSetChannelDisabledResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelDisabled404JSONResponse Error
+
+func (response SetChannelDisabled404JSONResponse) VisitSetChannelDisabledResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelPostingTimesRequestObject struct {
+	Id   ChannelID `json:"id"`
+	Body *SetChannelPostingTimesJSONRequestBody
+}
+
+type SetChannelPostingTimesResponseObject interface {
+	VisitSetChannelPostingTimesResponse(w http.ResponseWriter) error
+}
+
+type SetChannelPostingTimes204Response struct {
+}
+
+func (response SetChannelPostingTimes204Response) VisitSetChannelPostingTimesResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetChannelPostingTimes400JSONResponse struct{ ErrorJSONResponse }
+
+func (response SetChannelPostingTimes400JSONResponse) VisitSetChannelPostingTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelPostingTimes401JSONResponse Error
+
+func (response SetChannelPostingTimes401JSONResponse) VisitSetChannelPostingTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetChannelPostingTimes404JSONResponse Error
+
+func (response SetChannelPostingTimes404JSONResponse) VisitSetChannelPostingTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomersRequestObject struct {
+}
+
+type ListCustomersResponseObject interface {
+	VisitListCustomersResponse(w http.ResponseWriter) error
+}
+
+type ListCustomers200JSONResponse []Customer
+
+func (response ListCustomers200JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers401JSONResponse struct{ ErrorJSONResponse }
+
+func (response ListCustomers401JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -533,6 +1271,33 @@ type StrictServerInterface interface {
 	// (POST /auth/superadmin)
 	LoginSuperadmin(ctx context.Context, request LoginSuperadminRequestObject) (LoginSuperadminResponseObject, error)
 
+	// (GET /channels)
+	ListChannels(ctx context.Context, request ListChannelsRequestObject) (ListChannelsResponseObject, error)
+
+	// (GET /channels/providers)
+	ListProviders(ctx context.Context, request ListProvidersRequestObject) (ListProvidersResponseObject, error)
+
+	// (POST /channels/telegram/connections)
+	OpenTelegramConnection(ctx context.Context, request OpenTelegramConnectionRequestObject) (OpenTelegramConnectionResponseObject, error)
+
+	// (GET /channels/telegram/connections/{code})
+	GetTelegramConnection(ctx context.Context, request GetTelegramConnectionRequestObject) (GetTelegramConnectionResponseObject, error)
+
+	// (DELETE /channels/{id})
+	DeleteChannel(ctx context.Context, request DeleteChannelRequestObject) (DeleteChannelResponseObject, error)
+
+	// (PUT /channels/{id}/customer)
+	SetChannelCustomer(ctx context.Context, request SetChannelCustomerRequestObject) (SetChannelCustomerResponseObject, error)
+
+	// (PUT /channels/{id}/disabled)
+	SetChannelDisabled(ctx context.Context, request SetChannelDisabledRequestObject) (SetChannelDisabledResponseObject, error)
+
+	// (PUT /channels/{id}/posting-times)
+	SetChannelPostingTimes(ctx context.Context, request SetChannelPostingTimesRequestObject) (SetChannelPostingTimesResponseObject, error)
+
+	// (GET /customers)
+	ListCustomers(ctx context.Context, request ListCustomersRequestObject) (ListCustomersResponseObject, error)
+
 	// (GET /instance)
 	GetInstance(ctx context.Context, request GetInstanceRequestObject) (GetInstanceResponseObject, error)
 
@@ -630,6 +1395,253 @@ func (sh *strictHandler) LoginSuperadmin(w http.ResponseWriter, r *http.Request)
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(LoginSuperadminResponseObject); ok {
 		if err := validResponse.VisitLoginSuperadminResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChannels operation middleware
+func (sh *strictHandler) ListChannels(w http.ResponseWriter, r *http.Request) {
+	var request ListChannelsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChannels(ctx, request.(ListChannelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChannels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChannelsResponseObject); ok {
+		if err := validResponse.VisitListChannelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListProviders operation middleware
+func (sh *strictHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
+	var request ListProvidersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListProviders(ctx, request.(ListProvidersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListProviders")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListProvidersResponseObject); ok {
+		if err := validResponse.VisitListProvidersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// OpenTelegramConnection operation middleware
+func (sh *strictHandler) OpenTelegramConnection(w http.ResponseWriter, r *http.Request) {
+	var request OpenTelegramConnectionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.OpenTelegramConnection(ctx, request.(OpenTelegramConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "OpenTelegramConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(OpenTelegramConnectionResponseObject); ok {
+		if err := validResponse.VisitOpenTelegramConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTelegramConnection operation middleware
+func (sh *strictHandler) GetTelegramConnection(w http.ResponseWriter, r *http.Request, code string) {
+	var request GetTelegramConnectionRequestObject
+
+	request.Code = code
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTelegramConnection(ctx, request.(GetTelegramConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTelegramConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTelegramConnectionResponseObject); ok {
+		if err := validResponse.VisitGetTelegramConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteChannel operation middleware
+func (sh *strictHandler) DeleteChannel(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request DeleteChannelRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteChannel(ctx, request.(DeleteChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteChannelResponseObject); ok {
+		if err := validResponse.VisitDeleteChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetChannelCustomer operation middleware
+func (sh *strictHandler) SetChannelCustomer(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request SetChannelCustomerRequestObject
+
+	request.Id = id
+
+	var body SetChannelCustomerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetChannelCustomer(ctx, request.(SetChannelCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetChannelCustomer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetChannelCustomerResponseObject); ok {
+		if err := validResponse.VisitSetChannelCustomerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetChannelDisabled operation middleware
+func (sh *strictHandler) SetChannelDisabled(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request SetChannelDisabledRequestObject
+
+	request.Id = id
+
+	var body SetChannelDisabledJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetChannelDisabled(ctx, request.(SetChannelDisabledRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetChannelDisabled")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetChannelDisabledResponseObject); ok {
+		if err := validResponse.VisitSetChannelDisabledResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetChannelPostingTimes operation middleware
+func (sh *strictHandler) SetChannelPostingTimes(w http.ResponseWriter, r *http.Request, id ChannelID) {
+	var request SetChannelPostingTimesRequestObject
+
+	request.Id = id
+
+	var body SetChannelPostingTimesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetChannelPostingTimes(ctx, request.(SetChannelPostingTimesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetChannelPostingTimes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetChannelPostingTimesResponseObject); ok {
+		if err := validResponse.VisitSetChannelPostingTimesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCustomers operation middleware
+func (sh *strictHandler) ListCustomers(w http.ResponseWriter, r *http.Request) {
+	var request ListCustomersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomers(ctx, request.(ListCustomersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCustomersResponseObject); ok {
+		if err := validResponse.VisitListCustomersResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

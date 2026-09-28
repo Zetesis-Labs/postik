@@ -3,15 +3,18 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/zetesis-labs/postik/internal/auth"
 	"github.com/zetesis-labs/postik/internal/config"
+	"github.com/zetesis-labs/postik/internal/connect"
 	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/core/identity"
 	"github.com/zetesis-labs/postik/internal/postgres"
+	"github.com/zetesis-labs/postik/internal/storage"
 )
 
 var Languages = []string{"es", "en"}
@@ -26,7 +29,11 @@ type Server struct {
 	OIDC       *config.OIDC
 	Sessions   *auth.Sessions
 	Identity   IdentityReader
+	Channels   *postgres.Channels
+	Telegram   *connect.Telegram
+	Files      storage.Files
 	Now        func() time.Time
+	Logger     *slog.Logger
 }
 
 var _ StrictServerInterface = (*Server)(nil)

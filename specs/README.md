@@ -12,9 +12,9 @@ Cada spec técnica se escribe y se revisa antes de escribir el código de su ver
 
 | Spec | Vertical | Cubre | En pantalla al terminar | Introduce | Estado |
 |---|---|---|---|---|---|
-| S01 | Plataforma y superadmin | F2; §6.1: superadmin, su sesión e idiomas | Pantalla de acceso. El superadmin entra con contraseña y TOTP, y ve el panel vacío en español o en inglés | Binario, devcontainer, esquema y migraciones, OpenAPI, SPA embebida, `spec-check`, CI que construye la imagen | Pendiente |
-| S02 | Acceso OIDC y organizaciones | F1, F4; §6.1: sesión de los miembros; §6.2: membresía | «Entrar con el proveedor», su propia organización creada y el selector de organización | Cliente OIDC y emisor falso para los tests | Pendiente |
-| S03 | Canales, empezando por Telegram | F6, F8; §6.2: clientes; §6.3 | Añadir un canal de Telegram, la barra lateral agrupada por cliente y el menú contextual | Doble de la API de bots de Telegram | Pendiente |
+| S01 | Plataforma y superadmin | F2; §6.1: superadmin, su sesión e idiomas | Pantalla de acceso. El superadmin entra con contraseña y TOTP, y ve el panel vacío en español o en inglés | Binario, devcontainer, esquema y migraciones, OpenAPI, SPA embebida, `spec-check`, CI que construye la imagen | Implementada; falta que Rubén la pruebe |
+| S02 | Acceso OIDC y organizaciones | F1, F4; §6.1: sesión de los miembros; §6.2: membresía | «Entrar con el proveedor», su propia organización creada y el selector de organización | Cliente OIDC y emisor falso para los tests | Implementada; falta que Rubén la pruebe |
+| S03 | Canales, empezando por Telegram | F6, F8; §6.2: clientes; §6.3 | Añadir un canal de Telegram, la barra lateral agrupada por cliente y el menú contextual | Doble de la API de bots de Telegram | Implementada; falta que Rubén la pruebe |
 | S04 | Posts, calendario y medios | F9, F10, F15; §6.5–§6.7 | Editor, calendario con vistas de día, semana, mes y lista, etiquetas y biblioteca de medios | Almacenamiento de medios en disco | Pendiente |
 | S05 | Publicación y avisos | F11, F13, F14, F18; §6.8 | Un post programado sale a su hora en Telegram. Notificaciones y correos | Cola de trabajos y envío de correo | Pendiente |
 | S06 | Redes de Meta: Facebook, Instagram y Threads | F5, F7, F12, aviso de caducidad; §6.4 | Conectar, publicar y reconectar cada red | Dobles de la Graph API | Pendiente |

@@ -21,6 +21,7 @@ import (
 	"github.com/zetesis-labs/postik/internal/core/access"
 	"github.com/zetesis-labs/postik/internal/testsupport"
 	"github.com/zetesis-labs/postik/internal/testsupport/fakeoidc"
+	"github.com/zetesis-labs/postik/internal/testsupport/faketelegram"
 )
 
 var testTOTPSecret = []byte("postik-test-totp-secret!")
@@ -33,6 +34,7 @@ type harness struct {
 	db      *bun.DB
 	config  config.Config
 	oidc    *fakeoidc.Provider
+	bot     *faketelegram.Bot
 }
 
 type harnessOption func(*config.Config)
@@ -71,6 +73,7 @@ func newHarness(t *testing.T, options ...harnessOption) *harness {
 			Username: "admin",
 			Password: "correct horse battery staple",
 		},
+		StorageDir: t.TempDir(),
 	}
 	for _, option := range options {
 		option(&cfg)
@@ -78,15 +81,26 @@ func newHarness(t *testing.T, options ...harnessOption) *harness {
 	if cfg.OIDC != nil {
 		startOIDC(h, &cfg)
 	}
+	if cfg.Telegram != nil {
+		startTelegram(h, &cfg)
+	}
 	h.config = cfg
 	h.handler = app.New(app.Deps{
 		Config: cfg,
 		DB:     h.db,
 		Now:    h.clock.Now,
 		WebUI:  testWebUI(),
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger: slog.New(slog.NewTextHandler(testLog{t}, &slog.HandlerOptions{Level: slog.LevelWarn})),
 	})
 	return h
+}
+
+// testLog sends the application's warnings and errors to the test output.
+type testLog struct{ t *testing.T }
+
+func (l testLog) Write(p []byte) (int, error) {
+	l.t.Log(strings.TrimSpace(string(p)))
+	return len(p), nil
 }
 
 type response struct {
@@ -94,6 +108,13 @@ type response struct {
 	header  http.Header
 	body    []byte
 	cookies []*http.Cookie
+}
+
+func decodeJSON(t *testing.T, body []byte, into any) {
+	t.Helper()
+	if err := json.Unmarshal(body, into); err != nil {
+		t.Fatalf("decode %q: %v", body, err)
+	}
 }
 
 func (r response) json(t *testing.T) map[string]any {

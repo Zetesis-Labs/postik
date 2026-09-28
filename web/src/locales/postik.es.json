@@ -15,5 +15,13 @@
   "oidc_state": "El acceso ha caducado o no es válido. Vuelve a intentarlo.",
   "oidc_unavailable": "No se ha podido contactar con el proveedor de acceso. Inténtalo más tarde.",
   "email_required": "Tu proveedor de acceso no ha facilitado un email, y hace falta para entrar.",
-  "invitation_required": "Esta instancia solo admite a personas invitadas."
+  "invitation_required": "Esta instancia solo admite a personas invitadas.",
+  "scheduled_times": "Franjas programadas",
+  "no_time_slots": "Todavía no hay franjas",
+  "save_changes": "Guardar cambios",
+  "copied_to_clipboard": "Copiado al portapapeles",
+  "add_telegram": "Añadir Telegram",
+  "telegram_connection_expired": "El código ha caducado. Cierra la ventana y vuelve a intentarlo.",
+  "channel_name": "Nombre del canal",
+  "calendar_coming": "El calendario llega en el siguiente vertical."
 }

@@ -67,6 +67,164 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /channels/providers:
+    get:
+      operationId: listProviders
+      responses:
+        "200":
+          description: Providers with credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Provider"
+        "401":
+          $ref: "#/components/responses/Error"
+  /channels:
+    get:
+      operationId: listChannels
+      responses:
+        "200":
+          description: Channels of the active organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Channel"
+        "401":
+          $ref: "#/components/responses/Error"
+  /channels/{id}:
+    delete:
+      operationId: deleteChannel
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /channels/{id}/disabled:
+    put:
+      operationId: setChannelDisabled
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [disabled]
+              properties:
+                disabled:
+                  type: boolean
+      responses:
+        "204":
+          description: Updated
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /channels/{id}/customer:
+    put:
+      operationId: setChannelCustomer
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelCustomer"
+      responses:
+        "204":
+          description: Updated
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /channels/{id}/posting-times:
+    put:
+      operationId: setChannelPostingTimes
+      parameters:
+        - $ref: "#/components/parameters/ChannelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [times]
+              properties:
+                times:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /customers:
+    get:
+      operationId: listCustomers
+      responses:
+        "200":
+          description: Customers of the active organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/Error"
+  /channels/telegram/connections:
+    post:
+      operationId: openTelegramConnection
+      responses:
+        "201":
+          description: Pending connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramConnection"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /channels/telegram/connections/{code}:
+    get:
+      operationId: getTelegramConnection
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramConnectionStatus"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
   /me:
     get:
       operationId: getMe
@@ -80,6 +238,14 @@ paths:
         "401":
           $ref: "#/components/responses/Error"
 components:
+  parameters:
+    ChannelID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Error:
       description: Error
@@ -96,6 +262,78 @@ components:
           type: string
         message:
           type: string
+    Provider:
+      type: object
+      required: [identifier, name]
+      properties:
+        identifier:
+          type: string
+        name:
+          type: string
+    Customer:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    Channel:
+      type: object
+      required: [id, provider, name, username, disabled, refreshNeeded, inBetweenSteps, postingTimes]
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        picture:
+          type: string
+        disabled:
+          type: boolean
+        refreshNeeded:
+          type: boolean
+        inBetweenSteps:
+          type: boolean
+        customer:
+          $ref: "#/components/schemas/Customer"
+        postingTimes:
+          type: array
+          items:
+            type: integer
+    ChannelCustomer:
+      type: object
+      description: With name, moves by name (created if missing; blank removes). Otherwise moves to customerId, or removes when it is absent or null.
+      properties:
+        name:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+          nullable: true
+    TelegramConnection:
+      type: object
+      required: [code, botUsername]
+      properties:
+        code:
+          type: string
+        botUsername:
+          type: string
+    TelegramConnectionStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, connected, expired]
+        channelId:
+          type: string
+          format: uuid
     Instance:
       type: object
       required: [superadminTotp, languages]
