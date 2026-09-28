@@ -43,3 +43,5 @@ export function psql(sql: string): string {
 export function uniqueSubject(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
+
+export const fakesURL = `http://localhost:${process.env.POSTIK_E2E_FAKES_PORT ?? 5557}`;

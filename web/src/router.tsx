@@ -2,6 +2,8 @@ import { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router';
 import { meQuery } from '@/lib/api';
 import { ModalManager } from '@/components/ui/modals';
+import { Toaster } from '@/components/ui/toaster';
+import { ToolTip } from '@/components/ui/tooltip';
 import { LoginPage } from '@/components/auth/login-page';
 import { SuperadminLoginPage } from '@/components/auth/superadmin-login';
 import { AdminPanel } from '@/components/admin/admin-panel';
@@ -12,6 +14,8 @@ type RouterContext = { queryClient: QueryClient };
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => (
     <ModalManager>
+      <ToolTip />
+      <Toaster />
       <Outlet />
     </ModalManager>
   ),

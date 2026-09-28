@@ -30,6 +30,9 @@ export POSTIK_OIDC_ISSUER="http://localhost:${fakes_port}"
 export POSTIK_OIDC_CLIENT_ID="postik"
 export POSTIK_OIDC_CLIENT_SECRET="postik-secret"
 export POSTIK_OIDC_DISPLAY_NAME="Fake"
+export POSTIK_TELEGRAM_BOT_TOKEN="fake-token"
+export POSTIK_TELEGRAM_API_URL="http://localhost:${fakes_port}/telegram"
+export POSTIK_STORAGE_DIR="$(mktemp -d)"
 
 ./bin/postik migrate
 ./bin/postik serve &

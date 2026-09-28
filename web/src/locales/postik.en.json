@@ -15,5 +15,13 @@
   "oidc_state": "The sign-in expired or is not valid. Please try again.",
   "oidc_unavailable": "The sign-in provider could not be reached. Please try later.",
   "email_required": "Your sign-in provider did not share an email, and one is needed to enter.",
-  "invitation_required": "This instance only admits invited people."
+  "invitation_required": "This instance only admits invited people.",
+  "scheduled_times": "Scheduled Times",
+  "no_time_slots": "No time slots added yet",
+  "save_changes": "Save Changes",
+  "copied_to_clipboard": "Copied to clipboard",
+  "add_telegram": "Add Telegram",
+  "telegram_connection_expired": "The code expired. Close the window and try again.",
+  "channel_name": "Channel name",
+  "calendar_coming": "The calendar arrives in the next vertical."
 }

@@ -27,6 +27,9 @@ services:
       POSTIK_OIDC_CLIENT_ID: ${POSTIK_OIDC_CLIENT_ID:-postik}
       POSTIK_OIDC_CLIENT_SECRET: ${POSTIK_OIDC_CLIENT_SECRET:-postik-secret}
       POSTIK_OIDC_DISPLAY_NAME: ${POSTIK_OIDC_DISPLAY_NAME:-Fake}
+      POSTIK_TELEGRAM_BOT_TOKEN: ${POSTIK_TELEGRAM_BOT_TOKEN:-fake-token}
+      POSTIK_TELEGRAM_API_URL: ${POSTIK_TELEGRAM_API_URL:-http://localhost:5556/telegram}
+      POSTIK_STORAGE_DIR: /workspace/.data/uploads
     ports:
       - "8484:8080"
       - "5184:5173"

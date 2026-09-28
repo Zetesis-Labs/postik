@@ -27,10 +27,17 @@ Dentro del contenedor:
 | Comando | Qué hace |
 |---|---|
 | `make web-install` | Instala las dependencias del frontend |
+| `make dev` | Como `make run`, más los servicios falsos: proveedor OIDC y bot de Telegram |
 | `make run` | Construye la SPA y el binario, migra y arranca en <http://localhost:8484> |
 | `make check` | Código generado, formato, vet, migraciones, tests, tipos y anclaje de specs |
 | `make e2e` | Tests de pantalla con Playwright contra el binario |
 | `make migration name=…` | Genera una migración con Atlas a partir de `db/schema.sql` |
+
+Con `make dev`:
+
+- «Iniciar sesión con Fake» lleva a un formulario donde se escribe quién eres.
+- En <http://localhost:5556/telegram/_control> se le mandan mensajes al bot falso, por ejemplo el `/connect` de «Añadir canal».
+- Para usar Zetesis-Auth o un bot real, cambia las variables en `.devcontainer/.env` (hay ejemplos en `.env.example`).
 
 Para trabajar en el frontend con recarga en caliente, arranca `make run` en una terminal y `cd web && pnpm dev` en otra; Vite queda en <http://localhost:5184>.
 

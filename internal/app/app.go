@@ -12,8 +12,11 @@ import (
 
 	"github.com/zetesis-labs/postik/internal/auth"
 	"github.com/zetesis-labs/postik/internal/config"
+	"github.com/zetesis-labs/postik/internal/connect"
 	"github.com/zetesis-labs/postik/internal/httpapi"
 	"github.com/zetesis-labs/postik/internal/postgres"
+	"github.com/zetesis-labs/postik/internal/storage"
+	"github.com/zetesis-labs/postik/internal/telegram"
 	"github.com/zetesis-labs/postik/internal/webui"
 )
 
@@ -33,12 +36,27 @@ func New(d Deps) http.Handler {
 		Logger:        d.Logger,
 	}
 	identityStore := postgres.NewIdentity(d.DB)
+	channelStore := postgres.NewChannels(d.DB)
+	files := storage.Files{Dir: d.Config.StorageDir}
 	api := &httpapi.Server{
 		Superadmin: d.Config.Superadmin,
 		OIDC:       d.Config.OIDC,
 		Sessions:   sessions,
 		Identity:   identityStore,
+		Channels:   channelStore,
+		Files:      files,
 		Now:        d.Now,
+		Logger:     d.Logger,
+	}
+	if d.Config.Telegram != nil {
+		api.Telegram = &connect.Telegram{
+			Client:   telegram.New(d.Config.Telegram.APIURL, d.Config.Telegram.BotToken),
+			Store:    postgres.NewTelegram(d.DB),
+			Channels: channelStore,
+			Files:    files,
+			Now:      d.Now,
+			Logger:   d.Logger,
+		}
 	}
 
 	mux := http.NewServeMux()
@@ -46,6 +64,7 @@ func New(d Deps) http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /readyz", readiness(d.DB))
+	mux.Handle("GET "+storage.PublicPrefix, files.Handler())
 	if d.Config.OIDC != nil {
 		oidc := &auth.OIDC{
 			Provider:          *d.Config.OIDC,
