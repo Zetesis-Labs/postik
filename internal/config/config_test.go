@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/base64"
 	"strings"
 	"testing"
 )
@@ -136,7 +138,7 @@ func TestLinkedInNeedsTheEncryptionKey(t *testing.T) {
 		t.Fatalf("Load with a short key: %v", err)
 	}
 
-	env["POSTIK_ENCRYPTION_KEY"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+	env["POSTIK_ENCRYPTION_KEY"] = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))
 	cfg, err := Load(envFrom(env))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
