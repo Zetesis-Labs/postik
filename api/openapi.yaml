@@ -308,6 +308,252 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /tags:
+    get:
+      operationId: listTags
+      responses:
+        "200":
+          description: Tags of the active organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+        "401":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createTag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /tags/{id}:
+    put:
+      operationId: updateTag
+      parameters:
+        - $ref: "#/components/parameters/TagID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteTag
+      parameters:
+        - $ref: "#/components/parameters/TagID"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /posts:
+    get:
+      operationId: listCalendarPosts
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: customer
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Posts of the range
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CalendarPost"
+        "401":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createPosts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPosts"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedGroup"
+        "400":
+          $ref: "#/components/responses/InvalidPost"
+        "401":
+          $ref: "#/components/responses/Error"
+  /posts/list:
+    get:
+      operationId: listPosts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, scheduled, draft, published]
+      responses:
+        "200":
+          description: One page of posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostPage"
+        "401":
+          $ref: "#/components/responses/Error"
+  /posts/next-slot:
+    get:
+      operationId: nextSlot
+      parameters:
+        - name: channelId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Next free slot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [date]
+                properties:
+                  date:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /posts/{id}:
+    get:
+      operationId: getPost
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      responses:
+        "200":
+          description: The post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostDetail"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updatePost
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostEdit"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostDetail"
+        "400":
+          $ref: "#/components/responses/InvalidPost"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /posts/{id}/date:
+    put:
+      operationId: movePost
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostMove"
+      responses:
+        "204":
+          description: Moved
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /posts/{id}/group:
+    delete:
+      operationId: deletePostGroup
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
   /me:
     get:
       operationId: getMe
@@ -322,6 +568,20 @@ paths:
           $ref: "#/components/responses/Error"
 components:
   parameters:
+    TagID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PostID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     MediaID:
       name: id
       in: path
@@ -337,6 +597,12 @@ components:
         type: string
         format: uuid
   responses:
+    InvalidPost:
+      description: The post does not pass validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvalidPost"
     Error:
       description: Error
       content:
@@ -352,6 +618,276 @@ components:
           type: string
         message:
           type: string
+    Tag:
+      type: object
+      required: [id, name, color]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+    TagInput:
+      type: object
+      required: [name, color]
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+    PostMediaRef:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+    PostValueInput:
+      type: object
+      required: [content, delayMinutes, media]
+      properties:
+        content:
+          type: string
+        delayMinutes:
+          type: integer
+          minimum: 0
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostMediaRef"
+    PostMedia:
+      type: object
+      required: [id, url, kind]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        kind:
+          type: string
+        alt:
+          type: string
+        thumbnailUrl:
+          type: string
+        thumbnailSeconds:
+          type: integer
+    PostValue:
+      type: object
+      required: [content, delayMinutes, media]
+      properties:
+        content:
+          type: string
+        delayMinutes:
+          type: integer
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostMedia"
+    ChannelPostInput:
+      type: object
+      required: [channelId, values, settings]
+      properties:
+        channelId:
+          type: string
+          format: uuid
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostValueInput"
+        settings:
+          type: object
+          additionalProperties: true
+    NewPosts:
+      type: object
+      required: [type, publishAt, tags, posts]
+      properties:
+        type:
+          type: string
+          enum: [schedule, draft, now]
+        publishAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+            format: uuid
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelPostInput"
+    CreatedGroup:
+      type: object
+      required: [groupId, posts]
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        posts:
+          type: array
+          items:
+            type: object
+            required: [id, channelId]
+            properties:
+              id:
+                type: string
+                format: uuid
+              channelId:
+                type: string
+                format: uuid
+    Problem:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+        channelId:
+          type: string
+          format: uuid
+        valueIndex:
+          type: integer
+    InvalidPost:
+      type: object
+      required: [code, message, problems]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        problems:
+          type: array
+          items:
+            $ref: "#/components/schemas/Problem"
+    PostChannel:
+      type: object
+      required: [id, name, provider]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        provider:
+          type: string
+        picture:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+    CalendarPost:
+      type: object
+      required: [id, groupId, status, publishAt, excerpt, channel, tags]
+      properties:
+        id:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [draft, scheduled, published, error]
+        publishAt:
+          type: string
+          format: date-time
+        excerpt:
+          type: string
+        channel:
+          $ref: "#/components/schemas/PostChannel"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        releaseUrl:
+          type: string
+        error:
+          type: string
+    PostPage:
+      type: object
+      required: [items, page, pages, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarPost"
+        page:
+          type: integer
+        pages:
+          type: integer
+        total:
+          type: integer
+    PostDetail:
+      type: object
+      required: [id, groupId, status, publishAt, channel, values, settings, tags]
+      properties:
+        id:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [draft, scheduled, published, error]
+        publishAt:
+          type: string
+          format: date-time
+        channel:
+          $ref: "#/components/schemas/PostChannel"
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostValue"
+        settings:
+          type: object
+          additionalProperties: true
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        releaseUrl:
+          type: string
+        error:
+          type: string
+    PostEdit:
+      type: object
+      required: [mode, publishAt, values, settings, tags]
+      properties:
+        mode:
+          type: string
+          enum: [update, schedule]
+        republish:
+          type: boolean
+        publishAt:
+          type: string
+          format: date-time
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostValueInput"
+        settings:
+          type: object
+          additionalProperties: true
+        tags:
+          type: array
+          items:
+            type: string
+            format: uuid
+    PostMove:
+      type: object
+      required: [publishAt, mode]
+      properties:
+        publishAt:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          enum: [update, schedule]
+        republish:
+          type: boolean
     Media:
       type: object
       required: [id, name, url, kind, mime, size, alt, createdAt]

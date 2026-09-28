@@ -244,6 +244,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listTags"];
+        put?: never;
+        post: operations["createTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateTag"];
+        post?: never;
+        delete: operations["deleteTag"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCalendarPosts"];
+        put?: never;
+        post: operations["createPosts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/next-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["nextSlot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPost"];
+        put: operations["updatePost"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}/date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["movePost"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deletePostGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -267,6 +395,143 @@ export interface components {
         Error: {
             code: string;
             message: string;
+        };
+        Tag: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            color: string;
+        };
+        TagInput: {
+            name: string;
+            color: string;
+        };
+        PostMediaRef: {
+            /** Format: uuid */
+            id: string;
+        };
+        PostValueInput: {
+            content: string;
+            delayMinutes: number;
+            media: components["schemas"]["PostMediaRef"][];
+        };
+        PostMedia: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+            kind: string;
+            alt?: string;
+            thumbnailUrl?: string;
+            thumbnailSeconds?: number;
+        };
+        PostValue: {
+            content: string;
+            delayMinutes: number;
+            media: components["schemas"]["PostMedia"][];
+        };
+        ChannelPostInput: {
+            /** Format: uuid */
+            channelId: string;
+            values: components["schemas"]["PostValueInput"][];
+            settings: {
+                [key: string]: unknown;
+            };
+        };
+        NewPosts: {
+            /** @enum {string} */
+            type: "schedule" | "draft" | "now";
+            /** Format: date-time */
+            publishAt: string;
+            tags: string[];
+            posts: components["schemas"]["ChannelPostInput"][];
+        };
+        CreatedGroup: {
+            /** Format: uuid */
+            groupId: string;
+            posts: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                channelId: string;
+            }[];
+        };
+        Problem: {
+            code: string;
+            /** Format: uuid */
+            channelId?: string;
+            valueIndex?: number;
+        };
+        InvalidPost: {
+            code: string;
+            message: string;
+            problems: components["schemas"]["Problem"][];
+        };
+        PostChannel: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            provider: string;
+            picture?: string;
+            /** Format: uuid */
+            customerId?: string;
+        };
+        CalendarPost: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            groupId: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "error";
+            /** Format: date-time */
+            publishAt: string;
+            excerpt: string;
+            channel: components["schemas"]["PostChannel"];
+            tags: components["schemas"]["Tag"][];
+            releaseUrl?: string;
+            error?: string;
+        };
+        PostPage: {
+            items: components["schemas"]["CalendarPost"][];
+            page: number;
+            pages: number;
+            total: number;
+        };
+        PostDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            groupId: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "error";
+            /** Format: date-time */
+            publishAt: string;
+            channel: components["schemas"]["PostChannel"];
+            values: components["schemas"]["PostValue"][];
+            settings: {
+                [key: string]: unknown;
+            };
+            tags: components["schemas"]["Tag"][];
+            releaseUrl?: string;
+            error?: string;
+        };
+        PostEdit: {
+            /** @enum {string} */
+            mode: "update" | "schedule";
+            republish?: boolean;
+            /** Format: date-time */
+            publishAt: string;
+            values: components["schemas"]["PostValueInput"][];
+            settings: {
+                [key: string]: unknown;
+            };
+            tags: string[];
+        };
+        PostMove: {
+            /** Format: date-time */
+            publishAt: string;
+            /** @enum {string} */
+            mode: "update" | "schedule";
+            republish?: boolean;
         };
         Media: {
             /** Format: uuid */
@@ -374,6 +639,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description The post does not pass validation */
+        InvalidPost: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["InvalidPost"];
+            };
+        };
         /** @description Error */
         Error: {
             headers: {
@@ -385,6 +659,8 @@ export interface components {
         };
     };
     parameters: {
+        TagID: string;
+        PostID: string;
         MediaID: string;
         ChannelID: string;
     };
@@ -789,6 +1065,312 @@ export interface operations {
             header?: never;
             path: {
                 id: components["parameters"]["MediaID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tags of the active organization */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"][];
+                };
+            };
+            401: components["responses"]["Error"];
+        };
+    };
+    createTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    updateTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TagID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    deleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TagID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listCalendarPosts: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                customer?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Posts of the range */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarPost"][];
+                };
+            };
+            401: components["responses"]["Error"];
+        };
+    };
+    createPosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPosts"];
+            };
+        };
+        responses: {
+            /** @description Group created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedGroup"];
+                };
+            };
+            400: components["responses"]["InvalidPost"];
+            401: components["responses"]["Error"];
+        };
+    };
+    listPosts: {
+        parameters: {
+            query?: {
+                page?: number;
+                status?: "all" | "scheduled" | "draft" | "published";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of posts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPage"];
+                };
+            };
+            401: components["responses"]["Error"];
+        };
+    };
+    nextSlot: {
+        parameters: {
+            query?: {
+                channelId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Next free slot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        date: string;
+                    };
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getPost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PostID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The post */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDetail"];
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    updatePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PostID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostEdit"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDetail"];
+                };
+            };
+            400: components["responses"]["InvalidPost"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    movePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PostID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostMove"];
+            };
+        };
+        responses: {
+            /** @description Moved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    deletePostGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PostID"];
             };
             cookie?: never;
         };

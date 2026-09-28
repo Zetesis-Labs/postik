@@ -47,6 +47,7 @@ func New(d Deps) http.Handler {
 		Channels:   channelStore,
 		Files:      files,
 		Media:      &library.Library{Store: postgres.NewMediaStore(d.DB), Dir: d.Config.StorageDir, Now: d.Now},
+		Posts:      postgres.NewPosts(d.DB),
 		Now:        d.Now,
 		Logger:     d.Logger,
 	}

@@ -68,6 +68,7 @@ Ninguna variable nueva. Los medios se guardan en `POSTIK_STORAGE_DIR/media/AAAA/
   - un borrador solo exige que el valor principal no esté vacío;
   - los canales tienen que ser de la organización, no estar desactivados ni en paso intermedio;
   - las etiquetas y los medios, de la organización.
+- **Fechas al minuto:** toda fecha de publicación se guarda sin segundos, como en Postiz. Así el calendario y el siguiente hueco comparan minutos exactos.
 - **«Publicar ya»:** la fecha la pone el servidor al minuto actual. La que envía el cliente se ignora.
 - **Siguiente hueco libre:**
   - franjas: las del canal si se indica uno; si no, la unión de las de todos los canales activos de la organización;
@@ -121,6 +122,9 @@ Los errores de validación responden 400 con `code: invalid_post` y la lista de 
 | `too_long` | «El post es demasiado largo» |
 | `past_date` | «La fecha ya ha pasado» |
 | `channel_unavailable` | El canal ya no se puede usar |
+| `no_channels` | Hay que elegir al menos un canal |
+| `media_unavailable` | Un medio no es de la organización o se ha borrado |
+| `tag_unavailable` | Una etiqueta no es de la organización |
 
 ## 7. Interfaz
 
