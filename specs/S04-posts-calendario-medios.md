@@ -210,4 +210,166 @@ Cubre: constitución §8.
 
 ### B · Posts y calendario
 
-Los casos S04.8–S04.23 entran en el PR de posts y calendario, apilado sobre este.
+## S04.8 Programar un post en dos canales crea un grupo con un post por canal
+
+Cubre: F9; §6.5, grupos.
+
+- **Dado** Ana con dos canales de Telegram y la etiqueta «Lanzamiento».
+- **Cuando** programa para mañana a las 10:00 un post con un valor principal, un comentario con retardo de 5 minutos, una imagen y la etiqueta.
+- **Entonces**:
+  - hay un grupo con dos posts `scheduled` a mañana a las 10:00 UTC;
+  - cada post tiene los dos valores, el retardo, la imagen y la etiqueta;
+  - el calendario de mañana los muestra.
+
+## S04.9 La validación rechaza contenido vacío, demasiado largo o con fecha pasada
+
+Cubre: F9, errores; §6.5, validación.
+
+- **Dado** un canal de Telegram.
+- **Cuando** se programa:
+  - sin texto ni medio;
+  - con un comentario vacío;
+  - con 4.097 caracteres de texto;
+  - con 4.096 caracteres envueltos en `<p><strong>…</strong></p>`;
+  - para hace una hora.
+- **Entonces**:
+  - el primero responde `empty` en el valor 0;
+  - el segundo, `empty` en el valor 1;
+  - el tercero, `too_long`;
+  - el cuarto se acepta, porque las etiquetas no cuentan;
+  - el quinto responde `past_date`.
+
+  En los rechazos no se crea nada.
+
+## S04.10 Un borrador solo exige contenido y no se programa
+
+Cubre: F9, «Guardar como borrador»; §6.5, borradores.
+
+- **Dado** un canal.
+- **Cuando** se guarda un borrador con texto y fecha de ayer, y otro sin texto.
+- **Entonces** el primero queda en `draft` con esa fecha, y el segundo responde `empty`.
+
+## S04.11 «Publicar ya» usa la hora del servidor
+
+Cubre: F9, «Publicar ya».
+
+- **Dado** el reloj a las 12:34:56 y un cliente que envía una fecha de hace un año.
+- **Cuando** crea el post con `type: now`.
+- **Entonces** queda en `scheduled` a las 12:34:00 de hoy.
+
+## S04.12 El siguiente hueco libre salta lo ocupado y cambia de día
+
+Cubre: F9, siguiente hueco libre.
+
+- **Dado** un canal con franjas 120, 400 y 700 (02:00, 06:40 y 11:40 UTC), las 03:00 de hoy y un post de la organización, en otro canal, hoy a las 06:40.
+- **Cuando** se pide el hueco del canal; después se ocupa también las 11:40; y por último se pide sin indicar canal, con otro canal que tiene la franja 900 (15:00).
+- **Entonces**:
+  - primero es hoy a las 11:40;
+  - después, mañana a las 02:00;
+  - sin canal, hoy a las 15:00.
+
+## S04.13 El calendario trae el rango pedido, filtra por cliente y la lista pagina
+
+Cubre: §6.6.
+
+- **Dado**:
+  - posts de Ana ayer, hoy y dentro de 10 días;
+  - uno de ellos en un canal del cliente «Acme», y un borrador;
+  - un post de Bruno hoy.
+- **Cuando**:
+  - se pide el rango de esta semana;
+  - el mismo rango con el cliente «Acme»;
+  - y la lista con `draft`.
+- **Entonces**:
+  - el rango trae los posts de Ana de esta semana y no el de Bruno;
+  - con «Acme» solo el de ese cliente;
+  - la lista de borradores solo el borrador.
+
+## S04.14 Editar actualiza sin tocar el estado, o reprograma
+
+Cubre: F10, editar.
+
+- **Dado** un borrador y un post programado.
+- **Cuando** se edita el texto del borrador con `update`, y se reprograma el programado con otra fecha y `schedule`.
+- **Entonces** el borrador cambia de texto y sigue en `draft`, y el programado queda en `scheduled` a la fecha nueva.
+
+## S04.15 Reprogramar un post publicado exige confirmarlo
+
+Cubre: F10, editar y arrastrar.
+
+- **Dado** un post `published`.
+- **Cuando** se reprograma sin `republish`, después con `republish: true`, y en otro post publicado se cambia solo la fecha con `update`.
+- **Entonces**:
+  - el primero responde 409 `republish_required` y no cambia;
+  - el segundo lo deja en `scheduled`;
+  - el tercero cambia la fecha y sigue en `published`.
+
+## S04.16 Mover a un hueco pasado se rechaza y un borrador sigue siendo borrador
+
+Cubre: F10, arrastrar.
+
+- **Dado** un borrador y un post programado.
+- **Cuando** se mueve el programado a ayer y el borrador a mañana con `schedule`.
+- **Entonces** mover el programado responde 400 `past_date` sin cambiarlo, y el borrador sigue en `draft` con la fecha de mañana.
+
+## S04.17 Borrar un post borra su grupo en todos los canales
+
+Cubre: F10, borrar; §6.5.
+
+- **Dado** un grupo con posts en dos canales.
+- **Cuando** se borra desde uno de ellos.
+- **Entonces** desaparecen los dos, junto con el grupo.
+
+## S04.18 Borrar un canal se lleva sus posts
+
+Cubre: F8, borrar.
+
+- **Dado** un grupo con posts en los canales A y B.
+- **Cuando** se borra el canal A.
+- **Entonces** solo queda el post de B.
+
+## S04.19 Las etiquetas tienen nombre único y al borrarlas se quitan de los grupos
+
+Cubre: §6.5, etiquetas.
+
+- **Dado** la etiqueta «Lanzamiento», en rojo, asignada a un grupo.
+- **Cuando** se crea otra con el mismo nombre, se cambia la primera a verde y después se borra.
+- **Entonces**:
+  - el duplicado responde 409;
+  - el grupo muestra la etiqueta en verde;
+  - tras borrarla, el grupo queda sin etiquetas.
+
+## S04.20 Los posts, canales, etiquetas y medios de otra organización no se usan ni se ven
+
+Cubre: constitución §8.
+
+- **Dado** un post, un canal, una etiqueta y un medio de Bruno.
+- **Cuando** Ana:
+  - programa en el canal de Bruno;
+  - usa su etiqueta y su medio;
+  - pide su post, lo edita, lo mueve y lo borra.
+- **Entonces** crear responde 400 con los problemas y lo demás responde 404. El post de Bruno no cambia.
+
+## S04.21 Crear un post desde un hueco del calendario y verlo en la semana
+
+Cubre: F9; §6.6; §8.2.
+
+- **Dado** una persona con un canal de Telegram, en la vista de semana.
+- **Cuando** pulsa el «+» de un hueco futuro, elige el canal, escribe el texto y pulsa «Añadir al calendario».
+- **Entonces** el editor se cierra y la tarjeta del post aparece en ese hueco, con el extracto del texto.
+
+## S04.22 Abrir un post, actualizarlo y borrarlo
+
+Cubre: F10; §6.6.
+
+- **Dado** un post en el calendario.
+- **Cuando** se abre, se cambia el texto y se pulsa «Actualizar»; después se vuelve a abrir y se borra.
+- **Entonces** la tarjeta muestra el texto nuevo, y tras borrarlo desaparece.
+
+## S04.23 Subir un medio en la biblioteca e insertarlo en un post
+
+Cubre: F15; F9 paso 2.
+
+- **Dado** la biblioteca vacía.
+- **Cuando** se sube una imagen en `/media` y después, en el editor, «Insertar medio» la elige.
+- **Entonces** la biblioteca la muestra, y el editor enseña su miniatura en el valor del post.
