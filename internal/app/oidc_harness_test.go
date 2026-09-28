@@ -35,7 +35,7 @@ func (h *harness) newBrowser() *browser {
 	client := &http.Client{
 		Jar: jar,
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
-			if req.URL.Host == app.Host && !strings.HasPrefix(req.URL.Path, "/api/") {
+			if req.URL.Host == app.Host && !strings.HasPrefix(req.URL.Path, "/api/") && !strings.HasPrefix(req.URL.Path, "/integrations/social/") {
 				return http.ErrUseLastResponse
 			}
 			return nil

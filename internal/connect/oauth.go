@@ -92,8 +92,10 @@ type OAuth struct {
 	Box       *secretbox.Box
 	Files     storage.Files
 	PublicURL string
-	Now       func() time.Time
-	Logger    *slog.Logger
+	// LegacyCallbacks sends the networks Postiz's callback path.
+	LegacyCallbacks bool
+	Now             func() time.Time
+	Logger          *slog.Logger
 }
 
 // Providers lists the networks that can be connected.
@@ -106,8 +108,26 @@ func (o *OAuth) Providers() []string {
 	return out
 }
 
+// Where the networks send the browser back. postik serves both: its own
+// path, and Postiz's, which is legacy but stays so the apps registered for
+// suntzu keep working (S06 §2).
+const (
+	CallbackPrefix       = "/api/v1/channels/"
+	CallbackSuffix       = "/callback"
+	LegacyCallbackPrefix = "/integrations/social/"
+)
+
+// CallbackURL is the callback of provider on its own path or, when legacy,
+// on Postiz's.
+func (o *OAuth) CallbackURL(provider string, legacy bool) string {
+	if legacy {
+		return o.PublicURL + LegacyCallbackPrefix + provider
+	}
+	return o.PublicURL + CallbackPrefix + provider + CallbackSuffix
+}
+
 func (o *OAuth) redirect(provider string) string {
-	return o.PublicURL + "/api/v1/channels/" + provider + "/callback"
+	return o.CallbackURL(provider, o.LegacyCallbacks)
 }
 
 // Start creates the authorization and returns where to send the browser.
@@ -145,9 +165,10 @@ func (o *OAuth) Start(ctx context.Context, orgID, userID uuid.UUID, provider str
 
 // Callback finishes an authorization for the member of the session and
 // returns where to send the browser: /launches with added, continue or
-// oauth_error (§3).
-func (o *OAuth) Callback(ctx context.Context, userID *uuid.UUID, provider string, q url.Values) string {
-	channelID, pending, code := o.callback(ctx, userID, provider, q)
+// oauth_error (§3). redirect is the callback URL the browser came back to,
+// which the network checks again when exchanging the grant.
+func (o *OAuth) Callback(ctx context.Context, userID *uuid.UUID, provider string, q url.Values, redirect string) string {
+	channelID, pending, code := o.callback(ctx, userID, provider, q, redirect)
 	switch {
 	case code != "":
 		return "/launches?" + url.Values{"oauth_error": {code}}.Encode()
@@ -157,7 +178,7 @@ func (o *OAuth) Callback(ctx context.Context, userID *uuid.UUID, provider string
 	return "/launches?" + url.Values{"added": {channelID.String()}}.Encode()
 }
 
-func (o *OAuth) callback(ctx context.Context, userID *uuid.UUID, provider string, q url.Values) (uuid.UUID, bool, string) {
+func (o *OAuth) callback(ctx context.Context, userID *uuid.UUID, provider string, q url.Values, redirect string) (uuid.UUID, bool, string) {
 	network, ok := o.Networks[provider]
 	if !ok {
 		return uuid.Nil, false, oauth.ErrInvalidState
@@ -187,7 +208,7 @@ func (o *OAuth) callback(ctx context.Context, userID *uuid.UUID, provider string
 			return uuid.Nil, false, oauth.ErrExchangeFailed
 		}
 	}
-	account, err := network.Finish(ctx, q, secret, o.redirect(provider))
+	account, err := network.Finish(ctx, q, secret, redirect)
 	if errors.Is(err, ErrMissingPermissions) {
 		return uuid.Nil, false, oauth.ErrMissingPermissions
 	}

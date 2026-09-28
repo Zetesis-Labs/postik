@@ -132,7 +132,8 @@ func New(d Deps) (*App, error) {
 		mux.HandleFunc("GET "+auth.CallbackPath, oidc.Callback)
 	}
 	if networks.oauth != nil {
-		mux.HandleFunc("GET /api/v1/channels/{provider}/callback", oauthCallback(networks.oauth))
+		mux.HandleFunc("GET "+connect.CallbackPrefix+"{provider}"+connect.CallbackSuffix, oauthCallback(networks.oauth, false))
+		mux.HandleFunc("GET "+connect.LegacyCallbackPrefix+"{provider}", oauthCallback(networks.oauth, true))
 	}
 	httpapi.HandlerWithOptions(
 		httpapi.NewStrictHandlerWithOptions(api, nil, httpapi.StrictHTTPServerOptions{
@@ -188,29 +189,33 @@ func newNetworks(d Deps, channelStore *postgres.Channels, files storage.Files) (
 	}
 	return networks{
 		oauth: &connect.OAuth{
-			Networks:  map[string]connect.Network{"linkedin": profile, "linkedin-page": page},
-			Store:     postgres.NewOAuth(d.DB),
-			Channels:  channelStore,
-			Tokens:    keeper,
-			Box:       box,
-			Files:     files,
-			PublicURL: d.Config.PublicURL.String(),
-			Now:       d.Now,
-			Logger:    d.Logger,
+			Networks:        map[string]connect.Network{"linkedin": profile, "linkedin-page": page},
+			Store:           postgres.NewOAuth(d.DB),
+			Channels:        channelStore,
+			Tokens:          keeper,
+			Box:             box,
+			Files:           files,
+			PublicURL:       d.Config.PublicURL.String(),
+			LegacyCallbacks: d.Config.LegacyCallbacks,
+			Now:             d.Now,
+			Logger:          d.Logger,
 		},
 		tokens:   keeper,
 		linkedIn: client,
 	}, nil
 }
 
-// oauthCallback is where the networks send the browser back (S06 §3).
-func oauthCallback(o *connect.OAuth) http.HandlerFunc {
+// oauthCallback is where the networks send the browser back (S06 §3), on
+// postik's path or on Postiz's legacy one.
+func oauthCallback(o *connect.OAuth, legacy bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userID *uuid.UUID
 		if p, ok := auth.PrincipalFrom(r.Context()); ok && p.Kind == access.SessionMember {
 			userID = p.UserID
 		}
-		http.Redirect(w, r, o.Callback(r.Context(), userID, r.PathValue("provider"), r.URL.Query()), http.StatusFound)
+		provider := r.PathValue("provider")
+		target := o.Callback(r.Context(), userID, provider, r.URL.Query(), o.CallbackURL(provider, legacy))
+		http.Redirect(w, r, target, http.StatusFound)
 	}
 }
 

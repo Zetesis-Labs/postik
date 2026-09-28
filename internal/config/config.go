@@ -24,6 +24,8 @@ type Config struct {
 	StorageDir        string
 	// EncryptionKey seals the tokens of the networks (constitution §8).
 	EncryptionKey []byte
+	// LegacyCallbacks sends the networks Postiz's callback path (S06 §2).
+	LegacyCallbacks bool
 }
 
 type LinkedIn struct {
@@ -146,6 +148,12 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.OIDC = oidc
 	problems = append(problems, oidcProblems...)
 
+	legacy, err := parseBool(value("POSTIK_LEGACY_CALLBACKS"))
+	if err != nil {
+		problems = append(problems, fmt.Errorf("POSTIK_LEGACY_CALLBACKS: %w", err))
+	}
+	cfg.LegacyCallbacks = legacy
+
 	switch strings.ToLower(value("POSTIK_REQUIRE_INVITATION")) {
 	case "", "false", "0", "no":
 	case "true", "1", "yes":
@@ -222,6 +230,16 @@ func loadOIDC(value func(string) string) (*OIDC, []error) {
 		oidc.DisplayName = "OIDC"
 	}
 	return oidc, nil
+}
+
+func parseBool(raw string) (bool, error) {
+	switch strings.ToLower(raw) {
+	case "", "false", "0", "no":
+		return false, nil
+	case "true", "1", "yes":
+		return true, nil
+	}
+	return false, errors.New("must be true or false")
 }
 
 func parsePublicURL(raw string) (*url.URL, error) {
