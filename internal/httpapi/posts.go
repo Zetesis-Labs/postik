@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ var (
 	errRepublishRequired = errorBody("republish_required", "The post was already published; confirm to publish it again")
 	errPastDate          = errorBody(posts.CodePastDate, "The date has already passed")
 	errNoSlot            = errorBody("no_slot", "There is no free slot")
+	errReleaseNotMissing = errorBody("release_not_missing", "The post is not published or already has a link")
+	errReleaseURL        = errorBody("invalid_url", "The link must be an https URL")
 )
 
 // ---- Tags ----
@@ -524,4 +527,24 @@ func (s *Server) DeletePostGroup(ctx context.Context, request DeletePostGroupReq
 		return nil, err
 	}
 	return DeletePostGroup204Response{}, nil
+}
+
+func (s *Server) LinkPostRelease(ctx context.Context, request LinkPostReleaseRequestObject) (LinkPostReleaseResponseObject, error) {
+	org, ok, err := s.activeOrganization(ctx)
+	if err != nil || !ok {
+		return LinkPostRelease401JSONResponse(errUnauthenticated), err
+	}
+	link, err := url.Parse(strings.TrimSpace(request.Body.Url))
+	if err != nil || link.Scheme != "https" || link.Host == "" {
+		return LinkPostRelease400JSONResponse{errReleaseURL}, nil
+	}
+	switch err := s.Posts.SetReleaseURL(ctx, org, request.Id, link.String(), s.Now()); {
+	case errors.Is(err, postgres.ErrNotFound):
+		return LinkPostRelease404JSONResponse(errPostNotFound), nil
+	case errors.Is(err, postgres.ErrConflict):
+		return LinkPostRelease409JSONResponse(errReleaseNotMissing), nil
+	case err != nil:
+		return nil, err
+	}
+	return LinkPostRelease204Response{}, nil
 }

@@ -47,6 +47,15 @@ func (f Files) Remove(publicPath string) error {
 	return err
 }
 
+// Open opens a stored file by its public path.
+func (f Files) Open(publicPath string) (*os.File, error) {
+	relative, ok := strings.CutPrefix(publicPath, PublicPrefix)
+	if !ok || strings.Contains(relative, "..") {
+		return nil, fmt.Errorf("not a stored file: %q", publicPath)
+	}
+	return os.Open(filepath.Join(f.Dir, filepath.FromSlash(relative)))
+}
+
 // Handler serves the stored files under PublicPrefix, without directory listings.
 func (f Files) Handler() http.Handler {
 	files := http.FileServer(http.Dir(f.Dir))

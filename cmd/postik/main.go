@@ -73,15 +73,22 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 	}
 	defer db.Close()
 
+	postik, err := app.New(app.Deps{
+		Config: cfg,
+		DB:     db,
+		Now:    time.Now,
+		WebUI:  webui.Dist(),
+		Logger: logger,
+	})
+	if err != nil {
+		return err
+	}
+	if err := postik.Jobs.Start(context.WithoutCancel(ctx)); err != nil {
+		return fmt.Errorf("start jobs: %w", err)
+	}
 	server := &http.Server{
-		Addr: cfg.ListenAddr,
-		Handler: app.New(app.Deps{
-			Config: cfg,
-			DB:     db,
-			Now:    time.Now,
-			WebUI:  webui.Dist(),
-			Logger: logger,
-		}),
+		Addr:              cfg.ListenAddr,
+		Handler:           postik.Handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
@@ -98,5 +105,5 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 	}
 	shutdown, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	return server.Shutdown(shutdown)
+	return errors.Join(server.Shutdown(shutdown), postik.Jobs.Stop(shutdown))
 }

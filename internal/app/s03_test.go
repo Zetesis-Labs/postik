@@ -31,9 +31,14 @@ func withTelegram() harnessOption {
 // startTelegram is called by newHarness when the configuration asks for Telegram.
 func startTelegram(h *harness, cfg *config.Config) {
 	h.bot = faketelegram.New(testBotName)
-	server := httptest.NewServer(h.bot.Handler())
-	h.t.Cleanup(server.Close)
-	cfg.Telegram.APIURL = server.URL
+	h.botAPI = httptest.NewServer(h.bot.Handler())
+	h.t.Cleanup(h.botAPI.Close)
+	cfg.Telegram.APIURL = h.botAPI.URL
+}
+
+// stopTelegram makes the Bot API refuse connections from now on.
+func (h *harness) stopTelegram() {
+	h.botAPI.Close()
 }
 
 func (h *harness) member(identity fakeoidc.Identity) requestOption {

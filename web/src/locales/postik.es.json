@@ -59,5 +59,17 @@
   "invalid_tag": "La etiqueta necesita nombre y color",
   "tag_taken": "Ya existe una etiqueta con ese nombre",
   "no_slot": "No hay ningún hueco libre",
-  "not_found": "No se ha encontrado"
+  "not_found": "No se ha encontrado",
+  "post_error_channel_disabled": "No se ha podido publicar porque el canal está desactivado.",
+  "post_error_channel_refresh": "No se ha podido publicar porque hay que volver a conectar el canal.",
+  "post_error_unconfirmed": "No se ha podido confirmar la publicación; revisa el canal.",
+  "post_error_unreachable": "No se ha podido conectar con la red.",
+  "post_error_unknown": "Se ha producido un error al publicar este post.",
+  "link_publication": "Vincular publicación",
+  "paste_release_link": "Pega el enlace de la publicación que corresponde a este post:",
+  "publication_link": "Enlace de la publicación",
+  "connect_post": "Vincular",
+  "release_id_update_failed": "No se ha podido vincular la publicación",
+  "release_error_invalid_url": "El enlace tiene que empezar por https://",
+  "release_error_release_not_missing": "Este post ya tiene enlace o no está publicado"
 }

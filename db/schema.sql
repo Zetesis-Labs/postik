@@ -176,3 +176,19 @@ CREATE TABLE posts (
 CREATE INDEX posts_organization_publish_at_idx ON posts (organization_id, publish_at);
 CREATE INDEX posts_group_id_idx ON posts (group_id);
 CREATE INDEX posts_channel_id_idx ON posts (channel_id);
+CREATE INDEX posts_status_publish_at_idx ON posts (status, publish_at);
+
+CREATE TABLE post_deliveries (
+  post_id uuid NOT NULL,
+  publish_at timestamptz NOT NULL,
+  value_index integer NOT NULL,
+  state text NOT NULL,
+  external_id text NULL,
+  url text NULL,
+  error text NULL,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  CONSTRAINT post_deliveries_pkey PRIMARY KEY (post_id, publish_at, value_index),
+  CONSTRAINT post_deliveries_state_check CHECK (state IN ('sending', 'sent', 'failed')),
+  CONSTRAINT post_deliveries_post_fkey FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE
+);
