@@ -74,7 +74,7 @@ Cada una se cierra antes de empezar el vertical que la necesita:
 | Id | Pregunta | Hace falta en |
 |---|---|---|
 | P1 | ¿Migramos canales y posts de suntzu o empezamos de cero y se reconectan los canales? Hoy suntzu no tiene posts programados a futuro. | S10 |
-| P2 | Dominio: ¿reutilizamos `suntzu.nexolabs.dev` o ponemos uno nuevo? | S10 |
+| P2 | **Decidida el 2026-09-28: `suntzu.nexolabs.dev`.** postik pasa a servirse ahí y `postik.nexolabs.dev` redirige. La suntzu vieja (Postiz) queda apagada en git, con sus datos en sus volúmenes hasta S10. El nombre del proyecto no cambia. | S10 |
 | P3 | **Decidida el 2026-09-28: Resend**, como suntzu, por su API HTTP y sin SDK. La clave está en Infisical `pelayo-cluster` `/postik` (`RESEND_API_KEY`). | S05 |
 | P4 | OIDC en desarrollo: ¿el realm de desarrollo de Zetesis-Auth o un emisor local en el devcontainer? | S02 |
 | P5 | **Decidida el 2026-09-28: sí.** postik se despliega en pelayo junto a suntzu (namespace `postik`, `postik.nexolabs.dev` detrás de colon). Ese dominio resuelve a la LAN (`10.0.0.7`): vale para S01–S05 y para los retornos OAuth de S06/S07, que pasan por el navegador, pero no para que Instagram y Threads descarguen medios; eso se resuelve en S07, con Instagram al final por decisión de Rubén (2026-09-28). Comparte el bot de Telegram con suntzu, que está apagada. | S02 |

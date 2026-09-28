@@ -36,7 +36,7 @@ Fuera de S06:
 | `POSTIK_X_API_URL` | No, `https://api.x.com` | Para apuntar al X falso |
 | `POSTIK_X_STRIP_LINKS` | No, `false` | Quita los enlaces de lo que se publica en X (§6.3: es de la instancia). En X un post con enlace cuesta más de diez veces que uno sin él |
 
-**URL de vuelta** que hay que registrar en cada app: `<POSTIK_PUBLIC_URL>/api/v1/channels/<red>/callback`, con `<red>` igual a `linkedin`, `linkedin-page` o `x`. En pelayo: `https://postik.nexolabs.dev/api/v1/channels/linkedin/callback`, y así con cada una.
+**URL de vuelta** que hay que registrar en cada app: `<POSTIK_PUBLIC_URL>/api/v1/channels/<red>/callback`, con `<red>` igual a `linkedin`, `linkedin-page` o `x`. En pelayo: `https://suntzu.nexolabs.dev/api/v1/channels/linkedin/callback`, y así con cada una.
 
 ## 3. Conexión por OAuth (F5, F7)
 
