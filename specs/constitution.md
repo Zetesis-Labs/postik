@@ -57,7 +57,7 @@ Si el motor y la API están en verde pero la pantalla está a medias, el vertica
 - **Medios en disco:** se guardan en un volumen y el binario los sirve en una URL pública estable.
 - **Siempre encendido:** no se escala a cero, porque los posts tienen que salir a su hora.
 - **Migraciones:** van versionadas y se aplican con `postik migrate` antes de arrancar. El esquema nunca se sincroniza en caliente ni con pérdida de datos.
-- **Migraciones generadas:** se generan con Atlas a partir del esquema declarado. No se escriben ni se editan a mano.
+- **Migraciones generadas:** se generan con Atlas a partir del esquema declarado. No se escriben ni se editan a mano. La única excepción es el esquema de la cola de trabajos: lo migra su propia herramienta, dentro del mismo `postik migrate`.
 
 ## 8. Seguridad
 
@@ -76,4 +76,4 @@ Si el motor y la API están en verde pero la pantalla está a medias, el vertica
 
 - **Logs:** estructurados, en JSON.
 - **Estado del proceso:** `/healthz` y `/readyz`.
-- **Consumo:** se mide al cerrar cada vertical. La referencia a batir es suntzu, que en reposo ocupa unos 2,5 GiB.
+- **Consumo:** se mide al cerrar cada vertical. La referencia a batir es suntzu, que en reposo ocupaba unos 2,5 GiB (medido el 2026-09-28).

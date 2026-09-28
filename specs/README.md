@@ -12,7 +12,7 @@ Cada spec técnica se escribe y se revisa antes de escribir el código de su ver
 
 | Spec | Vertical | Cubre | En pantalla al terminar | Introduce | Estado |
 |---|---|---|---|---|---|
-| S01 | Plataforma y superadmin | F2; §6.1: superadmin, su sesión e idiomas | Pantalla de acceso. El superadmin entra con contraseña y TOTP, y ve el panel vacío en español o en inglés | Binario, devcontainer, esquema y migraciones, OpenAPI, SPA embebida, `spec-check`, CI, imagen | Pendiente |
+| S01 | Plataforma y superadmin | F2; §6.1: superadmin, su sesión e idiomas | Pantalla de acceso. El superadmin entra con contraseña y TOTP, y ve el panel vacío en español o en inglés | Binario, devcontainer, esquema y migraciones, OpenAPI, SPA embebida, `spec-check`, CI que construye la imagen | Pendiente |
 | S02 | Acceso OIDC y organizaciones | F1, F4; §6.1: sesión de los miembros; §6.2: membresía | «Entrar con el proveedor», su propia organización creada y el selector de organización | Cliente OIDC y emisor falso para los tests | Pendiente |
 | S03 | Canales, empezando por Telegram | F6, F8; §6.2: clientes; §6.3 | Añadir un canal de Telegram, la barra lateral agrupada por cliente y el menú contextual | Doble de la API de bots de Telegram | Pendiente |
 | S04 | Posts, calendario y medios | F9, F10, F15; §6.5–§6.7 | Editor, calendario con vistas de día, semana, mes y lista, etiquetas y biblioteca de medios | Almacenamiento de medios en disco | Pendiente |
@@ -77,5 +77,5 @@ Cada una se cierra antes de empezar el vertical que la necesita:
 | P2 | Dominio: ¿reutilizamos `suntzu.nexolabs.dev` o ponemos uno nuevo? | S10 |
 | P3 | Correo: ¿Resend, como suntzu, o SMTP genérico? | S05 |
 | P4 | OIDC en desarrollo: ¿el realm de desarrollo de Zetesis-Auth o un emisor local en el devcontainer? | S02 |
-| P5 | ¿Desplegamos en pelayo al cerrar S02, junto a suntzu, para probar en real desde el principio? Un push a main de Mileto despliega. | S02 |
-| P6 | Registro de la imagen: ¿ghcr.io, porque el repo es público, o Harbor? | S01 |
+| P5 | ¿Desplegamos en pelayo al cerrar S02, junto a suntzu, para probar en real desde el principio? Un push a main de Mileto despliega. De esto depende dónde se prueban S06 y S07 contra las redes reales: hace falta un entorno accesible desde internet, porque las redes vuelven a una URL registrada e Instagram descarga los medios desde una URL pública. | S02 |
+| P6 | Registro de la imagen: ¿ghcr.io, porque el repo es público, o Harbor? | Primer despliegue (P5) |
