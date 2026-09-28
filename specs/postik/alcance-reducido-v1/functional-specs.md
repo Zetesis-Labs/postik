@@ -31,7 +31,6 @@ Queda fuera todo lo demás que ofrece Postiz; el detalle está en la sección 9.
 |---|---|---|
 | **Superadmin de plataforma** | Operador de la instancia. Cuenta única y local. | Usuario y contraseña definidos en los secretos del despliegue, con 2FA TOTP opcional. **[Cambio v1]** |
 | **Miembro** | Cualquier persona con identidad en el proveedor OIDC configurado. | Inicio de sesión OIDC. **[Cambio v1]** |
-| **Visitante de vista previa** | Cualquiera con el enlace público de un post. | Sin autenticación, solo lectura. |
 
 ### Roles dentro de una organización
 
@@ -49,7 +48,6 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
 
 ### Poderes del superadmin de plataforma
 
-- **Impersonar:** buscar por nombre y actuar como un miembro concreto de una organización. Mientras impersona, el calendario muestra el origen de cada post (web o MCP) y la acción «copiar JSON de depuración».
 - **Añadir sin invitación:** meter a un usuario que ya existe en cualquier organización, con rol Usuario o Admin.
 - **Crear organizaciones:** hace falta cuando la instancia exige invitación (sección 6.1), porque entonces nadie puede crear la suya.
 
@@ -78,7 +76,6 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
 - Biblioteca de medios (`/media`).
 - Ajustes (`/settings`).
 - Retorno de la conexión de un canal (`/integrations/social/<proveedor>`).
-- Vista previa pública de un post (`/p/<id>`).
 - Panel del superadmin. **[Cambio v1]**
 
 ### Integraciones
@@ -94,7 +91,6 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
 |---|---|
 | Publicación de cada post programado | A su hora |
 | Comentarios o hilo de un post | Tras el post principal, con su retardo |
-| Siguiente repetición de un post periódico | Al publicarse con éxito la anterior |
 | Barrido de posts que se quedaron sin publicar | Cada hora |
 | Renovación anticipada del token | Antes de que caduque, solo en Threads |
 | Aviso de caducidad del token de Facebook e Instagram **[Cambio v1]** | Una comprobación al día; avisa 7 días antes |
@@ -215,12 +211,12 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
   - «Crear post» en el menú de un canal.
 - **Pasos:**
   1. Elige uno o varios canales. No aparecen los desactivados ni los que están en paso intermedio.
-  2. Escribe el contenido global: texto con formato y medios de la biblioteca (F16).
+  2. Escribe el contenido global: texto con formato y medios de la biblioteca (F15).
   3. Si quiere, añade valores adicionales: los siguientes elementos del hilo o comentarios. Cada uno puede llevar un retardo en minutos.
   4. Si quiere, personaliza un canal: se copia el contenido global como punto de partida y a partir de ahí ese canal tiene su propio texto y medios.
   5. Rellena los ajustes propios de cada red (sección 6.4).
   6. Revisa la vista previa por red: el texto que excede el límite de caracteres de la red aparece resaltado en rojo.
-  7. Añade etiquetas si quiere, y la repetición: cada día, cada 2 a 7 días, cada 2 semanas o cada mes.
+  7. Añade etiquetas si quiere.
   8. Fija fecha y hora (en la hora local del navegador).
   9. Pulsa una de las cuatro acciones:
      - **«Añadir al calendario»:** programa el post.
@@ -262,7 +258,7 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
   - Si no se sabe si la red recibió la publicación (se agotó el tiempo a mitad), tampoco se reintenta: queda como no confirmada.
 - **Otros casos:**
   - Si la renovación del token falla, el canal pasa a necesitar reconexión y se avisa (F12).
-  - Si la red publicó pero no devolvió identificador, el post queda Publicado con el enlace pendiente (F15).
+  - Si la red publicó pero no devolvió identificador, el post queda Publicado con el enlace pendiente (F14).
 - **Avisos:** notificación en la aplicación siempre. El fallo se manda además por correo en el momento; el éxito entra en el resumen horario (sección 6.8).
 
 ### F12. Renovación del token de un canal
@@ -284,20 +280,15 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
 - **Fin:** esos posts se publican (F11).
 - **Límite:** los que llevan más de 2 días vencidos no se recuperan y siguen como Programados.
 
-### F14. Posts periódicos
-
-- **Inicio:** un post con repetición se publica con éxito.
-- **Pasos:** programa la siguiente publicación sumando el intervalo y descontando lo que tardó en publicarse. Si esa fecha llevara más de 2 horas de retraso, la realinea al siguiente hueco en lugar de publicar varias seguidas.
-- **Fin:** la siguiente repetición queda pendiente. La republicación no vuelve a comprobar que el post esté Programado.
-
-### F15. Vincular una publicación sin enlace
+### F14. Vincular una publicación sin enlace
 
 - **Inicio:** en el calendario, el post publicado muestra el icono «Vincular publicación» porque la red no devolvió identificador.
 - **Pasos:** el usuario indica cuál es la publicación real.
 - **Fin:** el post queda con su enlace.
 - **Detalle:** no evidenciado cómo se elige exactamente la publicación en la interfaz.
+- **Nota:** en Postiz v2.24.0 solo TikTok deja posts sin enlace. Ninguna de las ocho redes de la v1 lo hace hoy; se conserva como red de seguridad.
 
-### F16. Subir y gestionar medios
+### F15. Subir y gestionar medios
 
 - **Inicio:** la biblioteca de medios (`/media`), o «Insertar medio» dentro del editor.
 - **Pasos:**
@@ -311,13 +302,7 @@ El «Propietario» se llama `SUPERADMIN` en Postiz, pero no tiene nada que ver c
   - En el editor: editar el texto alternativo y, en los vídeos, elegir un fotograma como miniatura.
 - **Errores:** «Tipo de archivo no admitido», «El archivo es demasiado grande» o «No se ha podido leer el archivo».
 
-### F17. Vista previa pública
-
-- **Inicio:** acción «Vista previa» de un post en el calendario, que genera el enlace `/p/<id>`.
-- **Pasos:** cualquiera con el enlace ve el post tal como se publicará, sin iniciar sesión.
-- **Fin:** solo lectura, sin comentarios. **[Cambio v1]**
-
-### F18. Operar desde un cliente MCP **[Cambio v1]**
+### F16. Operar desde un cliente MCP **[Cambio v1]**
 
 Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 
@@ -344,14 +329,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
   | La cuenta del proveedor aún no ha entrado nunca en la aplicación web | «Entra una vez en postik y vuelve a intentarlo» |
   | La organización de la URL no existe o el miembro no pertenece a ella | «Acceso denegado» |
 
-### F19. Impersonar (superadmin)
-
-- **Inicio:** en el panel del superadmin, buscar una organización o un miembro por nombre.
-- **Pasos:** elige un miembro y la aplicación pasa a funcionar como si fuera él, en su organización.
-- **Fin:** «Dejar de impersonar» vuelve al panel.
-- **Límite:** mientras impersona no se puede borrar la cuenta del miembro.
-
-### F20. Borrar la propia cuenta
+### F17. Borrar la propia cuenta
 
 - **Inicio:** Ajustes > General > «Borrar cuenta», con confirmación.
 - **Casos:**
@@ -362,7 +340,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 - **Después:** si vuelve a entrar por OIDC, se le trata como persona nueva.
 - **Salir de una organización:** no hay acción independiente; en Postiz solo ocurre al borrar la cuenta.
 
-### F21. Notificaciones en la aplicación
+### F18. Notificaciones en la aplicación
 
 - **Inicio:** llega una notificación a la organización.
 - **Pasos:**
@@ -520,8 +498,8 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
   - prefijo «Borrador:» si lo es;
   - borde rojo y aviso con el mensaje si está en Error;
   - franja de color si tiene etiqueta;
-  - icono «Vincular publicación» si falta el enlace (F15).
-- **Acciones al pasar el ratón:** duplicar, vista previa, vincular publicación (si aplica) y borrar.
+  - icono «Vincular publicación» si falta el enlace (F14).
+- **Acciones al pasar el ratón:** duplicar, vincular publicación (si aplica) y borrar.
 
 ### 6.7 Medios
 
@@ -552,7 +530,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
   - **Tokens del proveedor OIDC:** del emisor configurado, dirigidos a la URL del MCP y con el permiso `mcp:tools`. Solo en cabecera; nunca en la URL, porque acabarían en logs e historiales.
   - **Tokens personales:** cada miembro crea, nombra y revoca los suyos. Se aceptan en cabecera o en la URL, para clientes que no admiten cabeceras.
   - Desaparecen el servidor OAuth propio de Postiz, su pantalla de consentimiento, las «apps aprobadas» y la clave de API de la organización.
-- **Organización:** cada conexión actúa sobre una sola organización, elegida como se describe en F18. El superadmin puede usar cualquiera.
+- **Organización:** cada conexión actúa sobre una sola organización, elegida como se describe en F16. El superadmin puede usar cualquiera.
 - **Herramientas:** se conservan con los mismos nombres que en Postiz, para que los agentes y prompts existentes sigan valiendo.
 
   | Herramienta | Qué hace |
@@ -581,7 +559,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 | **Invitación** | Enlace para unirse | Email indicado, rol, caducidad (2 días), usada o no |
 | **Cliente** | Agrupación de canales de una organización | Nombre |
 | **Canal** | Cuenta, página o chat conectado de una red | Red, nombre, avatar, estado (sección 6.3), cliente, franjas de publicación, ajustes adicionales |
-| **Grupo de publicación** | Lo que se crea de una vez en el editor | Canales, etiquetas, repetición |
+| **Grupo de publicación** | Lo que se crea de una vez en el editor | Canales, etiquetas |
 | **Post** | La entrada de un grupo en un canal | Fecha, estado, valores (principal + hilo o comentarios con retardo), ajustes de la red, enlace publicado, mensaje de error, origen |
 | **Etiqueta** | Marca de color para posts | Nombre, color |
 | **Medio** | Archivo de la biblioteca | Nombre original, URL pública, tipo, texto alternativo, miniatura |
@@ -610,7 +588,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 ```
 
 - **Barra lateral:** canales agrupados por cliente. Menú contextual por canal (F8). Aviso rojo si necesita reconexión. Semitransparente si está desactivado.
-- **Cabecera:** el selector de organización solo aparece con más de una. La campana muestra el contador de no leídas (F21). El menú del avatar lleva a Ajustes y a Cerrar sesión.
+- **Cabecera:** el selector de organización solo aparece con más de una. La campana muestra el contador de no leídas (F18). El menú del avatar lleva a Ajustes y a Cerrar sesión.
 
 ### 8.2 Editor de post (modal)
 
@@ -624,12 +602,12 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 │ │ + Añadir comentario/hilo (retardo: _ min)                              │ │
 │ └──────────────────────────────┘                                         │
 │ Ajustes de X: quién responde [▾]  tipo [post▾]  comunidad [____]         │
-│ Etiquetas [▾]   Repetir [No ▾]   Fecha [27/09 19:00]                      │
+│ Etiquetas [▾]   Fecha [27/09 19:00]                                       │
 │ [Borrar]        [Guardar como borrador]  [Añadir al calendario ▾ Publicar ya]│
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Quitado respecto a Postiz** (sección 9): copiloto de IA, generar imagen o vídeo, «Diseñar medio», firmas, sets y el selector «Elegir un set».
+**Quitado respecto a Postiz** (sección 9): copiloto de IA, generar imagen o vídeo, «Diseñar medio», firmas, sets, el selector «Elegir un set» y «Repetir».
 
 ### 8.3 Añadir canal
 
@@ -649,10 +627,9 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 
 ### 8.5 Panel del superadmin **[Cambio v1]**
 
-- Buscador de organizaciones y miembros, con la acción «Impersonar».
+- Buscador de organizaciones y miembros.
 - «Añadir usuario existente a organización», con rol.
 - «Crear organización», útil cuando la instancia exige invitación.
-- Mientras se impersona, una franja fija indica «Actuando como <miembro> en <organización>» con el botón «Dejar de impersonar».
 
 ### 8.6 Acceso
 
@@ -696,7 +673,9 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 - **Otros:**
   - analíticas (segunda ola);
   - comentarios internos de equipo (en Postiz v2.24.0 no están enlazados en la interfaz);
-  - comentarios en la vista previa pública;
+  - posts periódicos (la opción «Repetir» del editor);
+  - vista previa pública (el enlace `/p/<id>` sin sesión);
+  - impersonar a un miembro desde el panel del superadmin;
   - onboarding tras el primer acceso;
   - páginas de administración `/admin/errors` y `/admin/stats`;
   - «intercambiar credenciales» entre cuentas;
@@ -719,7 +698,7 @@ Se replica el diseño de la rama `feat/mcp-keycloak-oauth` de ZetesisPortal.
 | **S3** | Clientes MCP cuyo proveedor OIDC no admite registro dinámico. | **Cerrada (2026-09-27):** tokens personales por miembro, como en ZetesisPortal; la clave de organización de Postiz desaparece. |
 | **S4** | ¿Mostrar redes sin credenciales configuradas? Postiz las muestra y falla al conectar. | **Cerrada (2026-09-28):** solo las que tienen credenciales. |
 | **S5** | Instagram independiente (Instagram Login, sin página de Facebook). Necesita `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`, que suntzu no tiene; a cambio, su token sí se renueva. La vía Facebook exige cuenta profesional vinculada a una página. | **Cerrada (2026-09-28):** fuera de la v1; todas las cuentas están vinculadas a una página de Facebook. |
-| **S6** | ¿Comentarios en la vista previa pública? | **Cerrada (2026-09-28):** fuera; vista previa de solo lectura. |
+| **S6** | ¿Comentarios en la vista previa pública? | **Sin efecto (2026-09-28):** la vista previa pública sale entera de la v1. |
 | **S7** | ¿Impedir en el servidor programar en el pasado? | **Cerrada (2026-09-28):** sí, con el mensaje «La fecha ya ha pasado». |
 | **S8** | Duración de la sesión. | **Cerrada (2026-09-28):** miembros, 7 días sin uso y 30 como máximo, con reentrada transparente por OIDC; superadmin, 12 horas. Detalle en 6.1. |
 | **S9** | Idiomas de la interfaz. | **Cerrada (2026-09-28):** español e inglés. |
