@@ -21,7 +21,7 @@ Al terminar S05:
 Fuera de S05:
 
 - **Renovación de tokens (F12):** Telegram no tiene tokens que renovar. Llega con las redes que sí los tienen, en S06 y S07. Por eso el paso 4 de F11 no hace nada en Telegram.
-- **Aviso de caducidad de Facebook e Instagram:** es de S06.
+- **Aviso de caducidad:** llega en S06 con LinkedIn, y S07 lo aplica a Facebook e Instagram.
 
 ## 2. Configuración
 

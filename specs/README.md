@@ -17,8 +17,8 @@ Cada spec técnica se escribe y se revisa antes de escribir el código de su ver
 | S03 | Canales, empezando por Telegram | F6, F8; §6.2: clientes; §6.3 | Añadir un canal de Telegram, la barra lateral agrupada por cliente y el menú contextual | Doble de la API de bots de Telegram | Implementada; falta que Rubén la pruebe |
 | S04 | Posts, calendario y medios | F9, F10, F15; §6.5–§6.7 | Editor, calendario con vistas de día, semana, mes y lista, etiquetas y biblioteca de medios | Almacenamiento de medios en disco | Implementada; falta que Rubén la pruebe |
 | S05 | Publicación y avisos | F11, F13, F14, F18; §6.8 | Un post programado sale a su hora en Telegram. Notificaciones y correos | Cola de trabajos y envío de correo | Implementada. Bloque A probado por Rubén en pelayo (2026-09-28); falta probar el bloque B (avisos) |
-| S06 | Redes de Meta: Facebook, Instagram y Threads | F5, F7, F12, aviso de caducidad; §6.4 | Conectar, publicar y reconectar cada red | Dobles de la Graph API | Pendiente |
-| S07 | LinkedIn (perfil y página), X y YouTube | F5, F7, F12; §6.4 | Lo mismo en estas redes | Dobles de sus API | Pendiente |
+| S06 | LinkedIn (perfil y página) y X | F5, F7, F12, aviso de caducidad; §6.3 (X); §6.4 | Conectar, publicar y reconectar cada red | OAuth, tokens cifrados y dobles de LinkedIn y X | Spec en revisión |
+| S07 | Redes de Meta (Facebook, Threads e Instagram) y YouTube | F5, F7, F12; §6.4 | Lo mismo en estas redes | Dobles de la Graph API y de YouTube | Pendiente |
 | S08 | MCP | F16; §6.9 | Ajustes > MCP con tokens personales. Un cliente MCP programa un post | SDK de MCP | Pendiente |
 | S09 | Equipo y panel del superadmin | F3, F17; §6.2; §8.4 y §8.5 | Invitar y quitar miembros, perfil, borrar la cuenta y el panel del superadmin completo | Correo de invitación | Pendiente |
 | S10 | Sustitución de suntzu | Operación | postik en producción y suntzu retirado | Manifiestos en Mileto | Pendiente |
@@ -77,5 +77,5 @@ Cada una se cierra antes de empezar el vertical que la necesita:
 | P2 | Dominio: ¿reutilizamos `suntzu.nexolabs.dev` o ponemos uno nuevo? | S10 |
 | P3 | **Decidida el 2026-09-28: Resend**, como suntzu, por su API HTTP y sin SDK. La clave está en Infisical `pelayo-cluster` `/postik` (`RESEND_API_KEY`). | S05 |
 | P4 | OIDC en desarrollo: ¿el realm de desarrollo de Zetesis-Auth o un emisor local en el devcontainer? | S02 |
-| P5 | **Decidida el 2026-09-28: sí.** postik se despliega en pelayo junto a suntzu (namespace `postik`, `postik.nexolabs.dev` detrás de colon). Ese dominio resuelve a la LAN (`10.0.0.7`): vale para S01–S05 y para los retornos OAuth de S06/S07, que pasan por el navegador, pero no para que Instagram descargue medios; eso se resuelve al llegar a S06. Comparte el bot de Telegram con suntzu, que está apagada. | S02 |
+| P5 | **Decidida el 2026-09-28: sí.** postik se despliega en pelayo junto a suntzu (namespace `postik`, `postik.nexolabs.dev` detrás de colon). Ese dominio resuelve a la LAN (`10.0.0.7`): vale para S01–S05 y para los retornos OAuth de S06/S07, que pasan por el navegador, pero no para que Instagram y Threads descarguen medios; eso se resuelve en S07, con Instagram al final por decisión de Rubén (2026-09-28). Comparte el bot de Telegram con suntzu, que está apagada. | S02 |
 | P6 | **Decidida el 2026-09-28: ghcr.io** (`ghcr.io/zetesis-labs/postik`, etiquetas `sha-<commit>` y `main`), publicada por la CI al mergear a `main`. | Primer despliegue (P5) |
