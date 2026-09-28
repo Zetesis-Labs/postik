@@ -34,9 +34,15 @@ Fuera de S06:
 | `POSTIK_LINKEDIN_AUTH_URL` y `POSTIK_LINKEDIN_API_URL` | No, `https://www.linkedin.com` y `https://api.linkedin.com` | Para apuntar al LinkedIn falso |
 | `POSTIK_X_API_KEY` y `POSTIK_X_API_SECRET` | No | Claves de consumidor de la app de X (OAuth 1.0a). Sin ellas, X no aparece en la rejilla |
 | `POSTIK_X_API_URL` | No, `https://api.x.com` | Para apuntar al X falso |
+| `POSTIK_LEGACY_CALLBACKS` | No, `false` | Manda a la red la URL de vuelta de Postiz (legacy) en vez de la de postik |
 | `POSTIK_X_STRIP_LINKS` | No, `false` | Quita los enlaces de lo que se publica en X (§6.3: es de la instancia). En X un post con enlace cuesta más de diez veces que uno sin él |
 
-**URL de vuelta** que hay que registrar en cada app: `<POSTIK_PUBLIC_URL>/api/v1/channels/<red>/callback`, con `<red>` igual a `linkedin`, `linkedin-page` o `x`. En pelayo: `https://suntzu.nexolabs.dev/api/v1/channels/linkedin/callback`, y así con cada una.
+**URL de vuelta** que hay que registrar en cada app, con `<red>` igual a `linkedin`, `linkedin-page` o `x`. postik sirve las dos:
+
+- la suya: `<POSTIK_PUBLIC_URL>/api/v1/channels/<red>/callback`;
+- la de Postiz, **legacy**: `<POSTIK_PUBLIC_URL>/integrations/social/<red>`. Se mantiene porque postik se sirve en `suntzu.nexolabs.dev` y las apps ya la tienen registrada desde suntzu.
+
+`POSTIK_LEGACY_CALLBACKS` decide cuál se manda a la red al conectar; en pelayo está activada. Cada ruta completa la conexión con su propia URL, así que cambiar el interruptor no rompe autorizaciones a medias.
 
 ## 3. Conexión por OAuth (F5, F7)
 
@@ -44,7 +50,7 @@ Fuera de S06:
    - La autorización guarda la organización activa, la persona, la red, el canal que se reconecta y la hora.
    - **LinkedIn:** el `state` es un valor aleatorio de 32 bytes. Los permisos pedidos son `openid profile w_member_social` para el perfil y `openid profile r_organization_social w_organization_social rw_organization_admin` para la página.
    - **X:** primero pide un *request token* (`POST /oauth/request_token` con `oauth_callback`) y guarda su secreto, cifrado. La autorización se identifica por ese `oauth_token`. La URL es `/oauth/authenticate?oauth_token=…`.
-2. **Vuelta:** la red redirige el navegador a `GET /api/v1/channels/{provider}/callback`. Siempre se termina redirigiendo a `/launches`: con `?added=<canal>` si fue bien, con `?continue=<canal>` si falta elegir página, o con `?oauth_error=<código>`.
+2. **Vuelta:** la red redirige el navegador a `GET /api/v1/channels/{provider}/callback` o, en legacy, a `GET /integrations/social/{provider}`. Siempre se termina redirigiendo a `/launches`: con `?added=<canal>` si fue bien, con `?continue=<canal>` si falta elegir página, o con `?oauth_error=<código>`.
 
    | Comprobación | Si falla, `oauth_error` |
    |---|---|
@@ -208,6 +214,7 @@ Las autorizaciones de más de una hora se borran al crear una nueva.
 | `GET /api/v1/channels/providers` | Añade `linkedin`, `linkedin-page` y `x`, si tienen credenciales |
 | `POST /api/v1/channels/{provider}/authorizations` | `{ "channelId"?: "…" }` → `{ "url": "…" }` |
 | `GET /api/v1/channels/{provider}/callback` | Vuelta de la red; redirige a `/launches` (§3) |
+| `GET /integrations/social/{provider}` | La misma vuelta en la ruta de Postiz (legacy, §2) |
 | `GET /api/v1/channels/{id}/pages` | Páginas de LinkedIn que administra la persona: `id`, `name` y `picture` |
 | `PUT /api/v1/channels/{id}/page` | `{ "pageId": "…" }` → el canal (§3, paso 5) |
 | `PUT /api/v1/channels/{id}/settings` | `{ "verified": true \| false }`; solo en X |
@@ -270,6 +277,7 @@ Cubre: F5, pasos 2–6; §3; §4, guardado.
 - **Cuando** inicia la autorización y el navegador vuelve con el código.
 - **Entonces**:
   - la URL de la red lleva el `state`, la URL de vuelta y los permisos del perfil;
+  - con `POSTIK_LEGACY_CALLBACKS`, la URL de vuelta es la de Postiz y la conexión termina igual;
   - la vuelta redirige a `/launches?added=<canal>`;
   - el canal es de LinkedIn, se llama «Ana García», tiene la foto guardada en `avatars/` y las tres franjas por defecto;
   - en la base de datos, el access token no aparece en claro;

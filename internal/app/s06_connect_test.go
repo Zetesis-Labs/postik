@@ -213,6 +213,17 @@ func TestConnectingLinkedInCreatesTheChannelWithSealedTokens(t *testing.T) {
 	if n := h.count("oauth_authorizations"); n != 0 {
 		t.Fatalf("%d authorizations left", n)
 	}
+
+	legacy := newHarness(t, withOIDC("Fake"), withLinkedIn(), func(c *config.Config) { c.LegacyCallbacks = true })
+	lb := legacy.memberBrowser(ana)
+	legacy.linkedIn.SignInNext(anaLinkedIn)
+	start, _ = url.Parse(lb.startAuthorization("linkedin", ""))
+	if got := start.Query().Get("redirect_uri"); got != legacy.server.URL+"/integrations/social/linkedin" {
+		t.Fatalf("legacy redirect_uri = %s", got)
+	}
+	if _, location := lb.get(start.String()); !strings.HasPrefix(location, "/launches?added=") {
+		t.Fatalf("legacy callback ended at %q", location)
+	}
 }
 
 // S06.3 Conectar la misma cuenta otra vez actualiza el canal.
