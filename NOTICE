@@ -1,0 +1,12 @@
+postik
+Copyright (C) 2026 Zetesis Labs
+
+postik se distribuye bajo la GNU Affero General Public License v3.0 (ver LICENSE).
+
+La interfaz de postik está adaptada de Postiz (https://github.com/gitroomhq/postiz-app),
+en su versión v2.24.0, publicada también bajo la GNU Affero General Public License v3.0.
+Los ficheros copiados o adaptados de Postiz lo indican en su primera línea.
+Las traducciones de web/src/locales/en.json y web/src/locales/es.json proceden de
+libraries/react-shared-libraries/src/translation/locales de Postiz v2.24.0.
+
+El servidor de postik no contiene código de Postiz.

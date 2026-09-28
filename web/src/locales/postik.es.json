@@ -1,0 +1,14 @@
+{
+  "admin_access": "Acceso de administrador",
+  "admin_access_title": "Acceso de administrador",
+  "label_username": "Usuario",
+  "label_code": "Código",
+  "code_placeholder": "Código TOTP o de recuperación",
+  "enter": "Entrar",
+  "back_to_sign_in": "Volver a iniciar sesión",
+  "invalid_credentials": "Los datos no son correctos",
+  "superadmin_panel": "Panel del superadmin",
+  "superadmin_panel_empty": "El panel del superadmin todavía está vacío.",
+  "logout": "Cerrar sesión",
+  "something_went_wrong": "Algo ha fallado. Inténtalo de nuevo."
+}
