@@ -10,10 +10,18 @@ postik programa y publica posts en redes sociales para equipos organizados en or
 - **La documentación es en español:** specs, README, esta constitución y los comentarios, cuando los haya.
 - **La interfaz está en español e inglés** (§6.1 de la funcional).
 
-## 2. Nada heredado de Postiz
+## 2. Qué se hereda de Postiz
 
-- Postiz se lee, no se copia. El fork [`Zetesis-Labs/postiz-app`](https://github.com/Zetesis-Labs/postiz-app) sirve para consultar cómo se comporta. De allí no pasa aquí ningún fichero, fragmento, componente, traducción ni icono, aunque la licencia lo permita. Por eso son dos repositorios.
-- Si Postiz y la funcional discrepan, manda la funcional.
+La referencia es el fork [`Zetesis-Labs/postiz-app`](https://github.com/Zetesis-Labs/postiz-app), en el tag `v2.24.0`.
+
+- **La interfaz se hereda.** Se trae de sus componentes React el marcado, las clases de Tailwind, los estilos, los iconos y los textos, junto con las traducciones al español y al inglés. Se adapta lo justo para encajarlo en nuestra SPA.
+- **Dentro de la interfaz no se hereda:**
+  - el acceso a datos ni el estado (SWR, zustand): se escriben aquí contra nuestra API;
+  - el enrutado de Next: se pasa a TanStack Router;
+  - el logo ni la marca de Postiz: postik tiene los suyos.
+- **El servidor no se hereda.** Postiz se lee para saber cómo se comporta, pero ninguna línea de su backend pasa aquí.
+- **Licencia:** los ficheros copiados o adaptados llevan en la cabecera una línea que dice de qué fichero de Postiz vienen. El fichero `NOTICE` reconoce la autoría de Postiz. Todo el repositorio es AGPL-3.0, como Postiz.
+- **Si Postiz y la funcional discrepan, manda la funcional.**
 
 ## 3. Especificación primero, con anclaje
 
